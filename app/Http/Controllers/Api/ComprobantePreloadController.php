@@ -16,7 +16,10 @@ class ComprobantePreloadController extends Controller
     public function store(Request $request): JsonResponse
     {
         $validated = $this->validatePayload($request);
-        $this->validateFacturaRuc($validated);
+
+        if ($error = $this->facturaRucError($validated)) {
+            return $error;
+        }
 
         return $this->cachePayload($validated);
     }
@@ -102,21 +105,23 @@ class ComprobantePreloadController extends Controller
         return $validated;
     }
 
-    private function validateFacturaRuc(array $validated): void
+    private function facturaRucError(array $validated): ?JsonResponse
     {
         if (($validated['tipo_comprobante'] ?? 'boleta') !== 'factura') {
-            return;
+            return null;
         }
 
         $tipoDocumento = (string) data_get($validated, 'client.tipo_documento', '');
         $numero = preg_replace('/\D/', '', (string) data_get($validated, 'client.numero_documento', ''));
 
-        if ($tipoDocumento !== '6' || !preg_match('/^\d{11}$/', $numero)) {
-            abort(response()->json([
-                'success' => false,
-                'message' => 'Para preparar una factura debe enviarse un RUC válido de 11 dígitos.'
-            ], 422));
+        if ($tipoDocumento === '6' && preg_match('/^\d{11}$/', $numero)) {
+            return null;
         }
+
+        return response()->json([
+            'success' => false,
+            'message' => 'Para preparar una factura debe enviarse un RUC válido de 11 dígitos.'
+        ], 422);
     }
 
     private function cachePayload(array $validated): JsonResponse
