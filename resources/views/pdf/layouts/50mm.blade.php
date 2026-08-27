@@ -4,9 +4,7 @@
 <style>
     @page { margin: 0; }
 
-    * {
-        box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     html,
     body {
@@ -20,11 +18,6 @@
         line-height: 1.18;
     }
 
-    /*
-     * Perfil para impresora térmica con rollo físico de 58mm.
-     * Se usan 50mm de ancho PDF como zona imprimible segura para evitar
-     * que las impresoras con márgenes mecánicos corten texto o QR.
-     */
     .container {
         width: 50mm;
         margin: 0;
@@ -41,29 +34,21 @@
 
     .logo-section-ticket {
         text-align: center;
-        margin: 0 0 1mm 0;
+        margin: 0 0 .8mm 0;
     }
 
     .logo-img-ticket {
         display: block;
-        width: 24mm;
-        max-height: 15mm;
+        width: 30mm;
+        max-height: 22mm;
         object-fit: contain;
         margin: 0 auto;
-    }
-
-    .company-name {
-        font-size: 9px;
-        line-height: 1.15;
-        font-weight: bold;
-        text-transform: uppercase;
-        margin: .5mm 0;
     }
 
     .company-ruc {
         font-size: 8px;
         font-weight: bold;
-        margin: .4mm 0;
+        margin: .5mm 0;
     }
 
     .company-details {
@@ -106,9 +91,7 @@
         overflow-wrap: anywhere;
     }
 
-    .client-separator {
-        display: none;
-    }
+    .client-separator { display: none; }
 
     .client-details {
         font-size: 6.9px;
@@ -141,8 +124,8 @@
     }
 
     .header-cant, .item-cant { width: 13%; }
-    .header-um, .item-um { width: 12%; }
-    .header-cod, .item-cod { width: 20%; }
+    .header-um, .item-um { width: 14%; }
+    .header-cod, .item-cod { width: 18%; }
     .header-precio, .item-precio { width: 27%; text-align: right; }
     .header-total, .item-total { width: 28%; text-align: right; }
 
@@ -167,9 +150,17 @@
         font-weight: bold;
         line-height: 1.2;
         text-align: left;
-        margin: 0 0 1mm 0;
+        margin: 0;
         padding-left: .3mm;
         overflow-wrap: anywhere;
+    }
+
+    .item-tax {
+        font-size: 6.2px;
+        line-height: 1.15;
+        text-align: left;
+        margin: .3mm 0 1mm .3mm;
+        font-weight: normal;
     }
 
     .totals-section {
@@ -195,9 +186,7 @@
         font-weight: normal;
     }
 
-    .total-dots {
-        display: none;
-    }
+    .total-dots { display: none; }
 
     .total-value {
         display: table-cell;
@@ -239,9 +228,7 @@
         border-bottom: .25mm dashed #000;
     }
 
-    .payment-info div {
-        margin-bottom: .5mm;
-    }
+    .payment-info div { margin-bottom: .5mm; }
 
     .qr-section {
         text-align: center;
@@ -280,15 +267,11 @@
         overflow-wrap: anywhere;
     }
 
-    .powered-by {
-        display: none;
-    }
+    .powered-by { display: none; }
 
     .actions,
     .btn,
-    .no-print {
-        display: none !important;
-    }
+    .no-print { display: none !important; }
 </style>
 @endsection
 
