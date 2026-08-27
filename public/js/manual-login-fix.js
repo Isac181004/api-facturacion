@@ -64,11 +64,36 @@
             }
 
             localStorage.setItem('sunat_token', data.access_token);
+
+            // El Blade principal mantiene el token en una variable global léxica.
+            // Actualizarla aquí evita recargar la página y perder el flujo ?preload=.
+            try {
+                if (typeof token !== 'undefined') {
+                    token = data.access_token;
+                }
+            } catch (_) {
+                // Si el navegador no expone el binding léxico, el resto del flujo
+                // todavía puede usar el token persistido en localStorage.
+            }
+
             setLoginStatus('Acceso correcto. Cargando facturación...', true);
 
-            // Recargar la misma URL (incluido ?preload=...) para que el script
-            // principal lea el token desde localStorage y cargue la venta.
-            window.location.reload();
+            // NO recargar. En el video se veía que el login era correcto y la
+            // recarga regresaba inmediatamente al formulario. Mostramos la app en
+            // la misma página y cargamos la precarga con el token recién emitido.
+            if (typeof mostrarApp === 'function') {
+                mostrarApp();
+            } else {
+                const loginPanel = document.getElementById('loginPanel');
+                const appPanel = document.getElementById('appPanel');
+                if (loginPanel) loginPanel.classList.add('hidden');
+                if (appPanel) appPanel.classList.remove('hidden');
+            }
+
+            if (typeof cargarPreload === 'function') {
+                await cargarPreload();
+            }
+
             return false;
         } catch (error) {
             setLoginStatus(error && error.message ? error.message : 'No se pudo iniciar sesión.', false);
@@ -77,8 +102,6 @@
         }
     }
 
-    // Sustituye el onclick="login()" del Blade original sin depender de que los
-    // IDs HTML se conviertan automáticamente en variables globales del navegador.
     window.login = robustLogin;
 
     document.addEventListener('DOMContentLoaded', function () {
