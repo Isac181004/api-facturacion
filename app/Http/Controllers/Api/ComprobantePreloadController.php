@@ -134,7 +134,10 @@ class ComprobantePreloadController extends Controller
             'data' => [
                 'token' => $token,
                 'expires_in_minutes' => 15,
-                'url' => url('/comprobantes/manual?preload=' . $token),
+                // El token va también en la ruta y no solo en query string.
+                // Esto evita que navegadores embebidos o shells de escritorio
+                // eliminen ?preload=... durante el login o una navegación interna.
+                'url' => url('/comprobantes/manual/' . $token),
             ],
             'message' => 'Datos de venta preparados para facturación.'
         ], 201);
