@@ -1,35 +1,29 @@
-{{-- PDF Ticket Header Component (Exact Design Match) --}}
-{{-- Props: $company, $document, $tipo_documento_nombre --}}
-
 @php
-    $logoPath = public_path('logo_factura.png');
+    $logoPath = public_path('images/salon.png');
+    $nombreEmpresa = $company->nombre_comercial ?: ($company->razon_social ?? 'MAJU GIMENA SALÓN & SPA');
+    $numeroComprobante = $document->numero_completo
+        ?? (($document->serie ?? '') . '-' . str_pad((string)($document->correlativo ?? ''), 6, '0', STR_PAD_LEFT));
 @endphp
 
 <div class="header">
-    {{-- Logo --}}
     @if(file_exists($logoPath))
         <div class="logo-section-ticket">
-            <img src="data:image/png;base64,{{ base64_encode(file_get_contents($logoPath)) }}" alt="Logo" class="logo-img-ticket">
+            <img src="{{ $logoPath }}" alt="Logo" class="logo-img-ticket">
         </div>
     @endif
 
-    {{-- Company Name --}}
-    <div class="company-name">{{ strtoupper($company->razon_social ?? 'EMPRESA DEMO SAC') }}</div>
-    
-    {{-- RUC --}}
-    <div class="company-ruc">RUC: {{ $company->ruc ?? '20100100100' }}</div>
-    
-    {{-- Company Details --}}
+    <div class="company-name">{{ $nombreEmpresa }}</div>
     <div class="company-details">
-        {{ $company->direccion ?? 'CALLE LAS NORMAS 123' }}<br>
-        {{ $company->distrito ?? 'CALLAO' }} {{ $company->codigo_postal ?? '654 321' }}<br>
-        Correo: {{ $company->email ?? 'Administrador@facturas.net' }}<br>
-        Web: {{ $company->website ?? 'www.facturas.net' }}
+        <strong>Belleza • Estética • Bienestar</strong>
+        @if(!empty($company->direccion))<br>{{ $company->direccion }}@endif
+        @if(!empty($company->distrito) || !empty($company->provincia))
+            <br>{{ trim(($company->distrito ?? '') . (!empty($company->distrito) && !empty($company->provincia) ? ', ' : '') . ($company->provincia ?? '')) }}
+        @endif
+        @if(!empty($company->telefono))<br>TEL / WHATSAPP: {{ $company->telefono }}@endif
+        @if(!empty($company->email))<br>{{ $company->email }}@endif
     </div>
 
-    {{-- Document Title --}}
-    <div class="document-title">{{ strtoupper($tipo_documento_nombre ?? 'BOLETA DE VENTA ELECTRONICA') }}</div>
-    
-    {{-- Document Number --}}
-    <div class="document-number">{{ $document->serie ?? 'B002' }} - {{ str_pad($document->correlativo ?? '10300686', 8, '0', STR_PAD_LEFT) }}</div>
+    <div class="company-ruc">RUC: {{ $company->ruc ?? '' }}</div>
+    <div class="document-title">{{ $tipo_documento_nombre ?? 'COMPROBANTE ELECTRÓNICO' }}</div>
+    <div class="document-number">{{ $numeroComprobante }}</div>
 </div>
