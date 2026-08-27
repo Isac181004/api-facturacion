@@ -1,75 +1,138 @@
-{{-- PDF Header Component --}}
-{{-- Props: $company, $document, $tipo_documento_nombre, $fecha_emision, $format --}}
+<table style="
+    width:100%;
+    border-collapse:collapse;
+    margin-bottom:18px;
+">
+    <tr>
 
-@php
-    // Unificamos la carga de la imagen en Base64 para todos los formatos y evitar problemas de rutas con dompdf.
-    $logoPath = public_path('logo_factura.png');
+        <!-- LOGO -->
+        <td style="
+            width:25%;
+            text-align:center;
+            vertical-align:middle;
+            padding:10px;
+        ">
 
-@endphp
+            @php
+                $logoSpa = public_path('images/salon.png');
+            @endphp
 
-@if(in_array($format, ['a4', 'A4', 'a5', 'A5']))
-    {{-- A4/A5 Header --}}
-    <div class="header">
-        <div class="logo-section">
-            <img src="data:image/png;base64,{{ base64_encode(file_get_contents($logoPath)) }}" alt="Logo Empresa" class="logo-img">
-        </div>
-        
-        <div class="company-section">
-            <div class="company-name">{{ strtoupper($company->razon_social ?? 'EMPRESA') }}</div>
-            <div class="company-details">
-                @if($company->direccion)
-                    {{ $company->direccion }}<br>
-                @endif
-                @if($company->distrito || $company->provincia || $company->departamento)
-                    {{ $company->distrito ? $company->distrito . ', ' : '' }}{{ $company->provincia ? $company->provincia . ', ' : '' }}{{ $company->departamento }}<br>
-                @endif
+            @if(file_exists($logoSpa))
+                <img
+                    src="{{ $logoSpa }}"
+                    style="
+                        max-width:120px;
+                        max-height:90px;
+                    "
+                >
+            @else
+                <div style="
+                    font-size:22px;
+                    font-weight:bold;
+                ">
+                    MAJU GIMENA SALÓN & SPA
+                </div>
+            @endif
+
+        </td>
+
+
+        <!-- DATOS EMPRESA -->
+        <td style="
+            width:45%;
+            vertical-align:top;
+            padding:12px 8px;
+        ">
+
+            <div style="
+                font-size:17px;
+                font-weight:bold;
+                margin-bottom:7px;
+            ">
+                {{ $company->nombre_comercial ?: $company->razon_social }}
+            </div>
+
+            <div style="
+                font-size:10px;
+                line-height:1.5;
+            ">
+
+                <strong>
+                    Belleza • Estética • Bienestar
+                </strong>
+
+                <br>
+
+                {{ $company->direccion }}
+
+                <br>
+
+                {{ $company->distrito }},
+                {{ $company->provincia }}
+
                 @if($company->telefono)
-                    TELÉFONO: {{ $company->telefono }}<br>
+                    <br>
+                    TELÉFONO / WHATSAPP:
+                    {{ $company->telefono }}
                 @endif
+
                 @if($company->email)
-                    EMAIL: {{ $company->email }}<br>
+                    <br>
+                    EMAIL:
+                    {{ $company->email }}
                 @endif
-                @if($company->web)
-                    WEB: {{ $company->web }}
-                @endif
+
             </div>
-        </div>
-        
-        <div class="document-section">
-            <div class="factura-box">
-                <p><b>RUC {{ $company->ruc ?? 'N/A' }}</b></p>
-                <p><b>{{ strtoupper($tipo_documento_nombre ?? 'FACTURA ELECTRÓNICA') }}</b></p>
-                <p><b>{{ $document->serie }}-{{ str_pad($document->correlativo, 6, '0', STR_PAD_LEFT) }}</b></p>
+
+        </td>
+
+
+        <!-- COMPROBANTE -->
+        <td style="
+            width:30%;
+            vertical-align:middle;
+            padding:7px;
+        ">
+
+            <div style="
+                border:1.5px solid #111;
+                border-radius:10px;
+                text-align:center;
+                padding:15px 7px;
+                line-height:1.45;
+            ">
+
+                <div style="
+                    font-size:12px;
+                    font-weight:bold;
+                ">
+                    RUC {{ $company->ruc }}
+                </div>
+
+                <div style="
+                    font-size:14px;
+                    font-weight:bold;
+                    margin-top:5px;
+                ">
+                    {{ $tipo_documento_nombre }}
+                </div>
+
+                <div style="
+                    font-size:14px;
+                    font-weight:bold;
+                    margin-top:5px;
+                ">
+                    {{ $document->numero_completo }}
+                </div>
+
             </div>
-        </div>
-    </div>
-@else
-    {{-- Ticket Header (50mm, 80mm, ticket) --}}
-    <div class="header">
-        <div class="logo-section-ticket">
-          
-            <img src="data:image/jpg;base64,{{ base64_encode(file_get_contents($logoPath)) }}" alt="Logo Empresa" class="logo-img-ticket">
-          
-        </div>
-        <div class="company-name">{{ strtoupper($company->razon_social ?? 'EMPRESA') }}</div>
-        <div class="company-details">
-            @if($company->nombre_comercial)
-                {{ $company->nombre_comercial }}<br>
-            @endif
-            RUC: {{ $company->ruc ?? '' }}<br>
-            {{ $company->direccion ?? '' }}<br>
-            @if($company->telefono)
-                Tel: {{ $company->telefono }}<br>
-            @endif
-            @if($company->email)
-                Email: {{ $company->email }}
-            @endif
-        </div>
-        
-        <div class="document-info">
-            <div>{{ strtoupper($tipo_documento_nombre) }}</div>
-            <div>{{ $document->numero_completo }}</div>
-            <div>{{ $fecha_emision }}</div>
-        </div>
-    </div>
-@endif
+
+        </td>
+
+    </tr>
+</table>
+
+<div style="
+    border-bottom:1px solid #444;
+    margin-bottom:18px;
+"></div>

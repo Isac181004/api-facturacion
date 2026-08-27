@@ -35,4 +35,12 @@ return [
         ],
     ],
 
+    'apiinti' => [
+    'key' => env('APIINTI_KEY'),
+    'base_url' => env(
+        'APIINTI_BASE_URL',
+        'https://app.apiinti.dev/api/v1'
+    ),
+],
+
 ];
