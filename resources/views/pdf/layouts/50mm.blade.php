@@ -11,107 +11,137 @@
         margin: 0;
         padding: 0;
         width: 50mm;
+        max-width: 50mm;
         color: #000;
         background: #fff;
         font-family: DejaVu Sans, Arial, sans-serif;
-        font-size: 7.4px;
-        line-height: 1.18;
+        font-size: 7.1px;
+        line-height: 1.17;
+        overflow-x: hidden;
     }
 
     .container {
-        width: 50mm;
-        margin: 0;
-        padding: 1.5mm 1.6mm 2mm 1.6mm;
+        width: 47mm;
+        max-width: 47mm;
+        margin: 0 auto;
+        padding: 1.3mm .9mm 2mm .9mm;
+        overflow: hidden;
     }
 
     .header {
         width: 100%;
+        max-width: 100%;
         text-align: center;
-        padding: 0 0 2mm 0;
-        margin: 0 0 1.5mm 0;
+        padding: 0 0 1.5mm 0;
+        margin: 0 0 1.2mm 0;
         border-bottom: .25mm dashed #000;
+        overflow: hidden;
     }
 
     .logo-section-ticket {
+        width: 100%;
         text-align: center;
-        margin: 0 0 .6mm 0;
+        margin: 0 0 .5mm 0;
     }
 
     .logo-img-ticket {
         display: block;
-        width: 22mm;
-        max-height: 16mm;
+        width: 20mm;
+        max-width: 20mm;
+        max-height: 14mm;
         object-fit: contain;
         margin: 0 auto;
     }
 
     .company-ruc {
-        font-size: 8px;
+        font-size: 7.7px;
         font-weight: bold;
-        margin: .5mm 0;
+        margin: .45mm 0;
+        overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
     .company-details {
-        font-size: 6.8px;
-        line-height: 1.2;
-        margin: .4mm 0 .9mm 0;
+        width: 100%;
+        max-width: 100%;
+        font-size: 6.4px;
+        line-height: 1.18;
+        margin: .35mm 0 .8mm 0;
         overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
     .document-title {
-        font-size: 8.2px;
+        width: 100%;
+        max-width: 100%;
+        font-size: 7.6px;
         font-weight: bold;
         line-height: 1.15;
         text-transform: uppercase;
-        padding: 1mm 0 .7mm 0;
-        margin: .8mm 0 0 0;
+        padding: .8mm .5mm .6mm .5mm;
+        margin: .7mm 0 0 0;
         border-top: .25mm solid #000;
+        overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
     .document-number {
-        font-size: 9px;
+        font-size: 8.5px;
         font-weight: bold;
-        padding: .5mm 0 0 0;
+        padding: .4mm 0 0 0;
+        overflow-wrap: anywhere;
     }
 
     .client-section {
         width: 100%;
-        padding: 0 0 1.5mm 0;
-        margin: 0 0 1.5mm 0;
+        max-width: 100%;
+        padding: 0 0 1.2mm 0;
+        margin: 0 0 1.2mm 0;
         border-bottom: .25mm dashed #000;
         text-align: left;
+        overflow: hidden;
     }
 
     .client-name {
-        font-size: 7.4px;
+        width: 100%;
+        max-width: 100%;
+        font-size: 6.8px;
         font-weight: bold;
-        line-height: 1.2;
+        line-height: 1.18;
         text-align: left;
-        margin-bottom: .6mm;
+        margin-bottom: .5mm;
+        white-space: normal;
         overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
     .client-separator { display: none; }
 
     .client-details {
-        font-size: 6.9px;
-        line-height: 1.2;
+        width: 100%;
+        max-width: 100%;
+        font-size: 6.5px;
+        line-height: 1.18;
         text-align: left;
-        margin-bottom: .5mm;
+        margin-bottom: .4mm;
+        white-space: normal;
         overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
     .items-header {
         display: table;
         width: 100%;
+        max-width: 100%;
         table-layout: fixed;
-        padding: .7mm 0;
+        padding: .6mm 0;
         margin: 0;
         border-top: .25mm solid #000;
         border-bottom: .25mm solid #000;
-        font-size: 6.3px;
-        line-height: 1.1;
+        font-size: 5.8px;
+        line-height: 1.08;
         font-weight: bold;
+        overflow: hidden;
     }
 
     .items-header > div,
@@ -119,152 +149,199 @@
         display: table-cell;
         vertical-align: top;
         text-align: center;
-        padding: .2mm .15mm;
+        padding: .15mm .1mm;
+        overflow: hidden;
         overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
-    .header-cant, .item-cant { width: 13%; }
+    .header-cant, .item-cant { width: 12%; }
     .header-um, .item-um { width: 14%; }
     .header-cod, .item-cod { width: 18%; }
-    .header-precio, .item-precio { width: 27%; text-align: right; }
-    .header-total, .item-total { width: 28%; text-align: right; }
+    .header-precio, .item-precio { width: 27%; text-align: right; white-space: nowrap; }
+    .header-total, .item-total { width: 29%; text-align: right; white-space: nowrap; }
 
     .items-section {
         width: 100%;
-        margin: 0 0 1.5mm 0;
-        padding: 0 0 1mm 0;
+        max-width: 100%;
+        margin: 0 0 1.2mm 0;
+        padding: 0 0 .8mm 0;
         border-bottom: .25mm solid #000;
+        overflow: hidden;
     }
 
     .item {
         display: table;
         width: 100%;
+        max-width: 100%;
         table-layout: fixed;
-        font-size: 6.5px;
-        line-height: 1.15;
-        margin: .8mm 0 .3mm 0;
+        font-size: 6.1px;
+        line-height: 1.12;
+        margin: .7mm 0 .25mm 0;
+        overflow: hidden;
     }
 
     .item-descripcion {
-        font-size: 7px;
+        width: 100%;
+        max-width: 100%;
+        font-size: 6.6px;
         font-weight: bold;
-        line-height: 1.2;
+        line-height: 1.18;
         text-align: left;
         margin: 0;
-        padding-left: .3mm;
+        padding: 0 .2mm;
+        white-space: normal;
         overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
     .item-tax {
-        font-size: 6.2px;
-        line-height: 1.15;
+        width: 100%;
+        max-width: 100%;
+        font-size: 5.9px;
+        line-height: 1.12;
         text-align: left;
-        margin: .3mm 0 1mm .3mm;
+        margin: .25mm 0 .8mm .2mm;
         font-weight: normal;
+        white-space: normal;
+        overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
     .totals-section {
         width: 100%;
+        max-width: 100%;
         margin: 0;
         padding: 0;
-        font-size: 7px;
+        font-size: 6.6px;
+        overflow: hidden;
     }
 
     .total-line {
         display: table;
         width: 100%;
+        max-width: 100%;
         table-layout: fixed;
-        font-size: 7px;
-        line-height: 1.2;
-        margin: 0 0 .5mm 0;
+        font-size: 6.6px;
+        line-height: 1.18;
+        margin: 0 0 .45mm 0;
+        overflow: hidden;
     }
 
     .total-text {
         display: table-cell;
-        width: 62%;
+        width: 60%;
         text-align: left;
         font-weight: normal;
+        padding-right: .5mm;
+        overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
     .total-dots { display: none; }
 
     .total-value {
         display: table-cell;
-        width: 38%;
+        width: 40%;
         text-align: right;
         font-weight: bold;
         white-space: nowrap;
+        padding-right: .2mm;
     }
 
     .total-final {
         border-top: .25mm solid #000;
         border-bottom: .25mm solid #000;
-        padding: .8mm 0;
-        margin-top: .8mm;
+        padding: .7mm 0;
+        margin-top: .7mm;
     }
 
     .total-final .total-text,
     .total-final .total-value {
-        font-size: 8.3px;
+        font-size: 7.8px;
         font-weight: bold;
     }
 
     .total-letras {
-        font-size: 6.8px;
+        width: 100%;
+        max-width: 100%;
+        font-size: 6.4px;
         font-weight: bold;
-        line-height: 1.2;
+        line-height: 1.18;
         text-align: left;
-        margin: 1.2mm 0;
+        margin: 1mm 0;
+        white-space: normal;
         overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
     .payment-info {
-        font-size: 6.8px;
-        line-height: 1.2;
+        width: 100%;
+        max-width: 100%;
+        font-size: 6.3px;
+        line-height: 1.18;
         text-align: left;
-        padding: 1mm 0;
-        margin: 1mm 0;
+        padding: .8mm 0;
+        margin: .8mm 0;
         border-top: .25mm dashed #000;
         border-bottom: .25mm dashed #000;
+        overflow: hidden;
+        overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
-    .payment-info div { margin-bottom: .5mm; }
+    .payment-info div { margin-bottom: .4mm; }
 
     .qr-section {
+        width: 100%;
+        max-width: 100%;
         text-align: center;
-        margin: 1.5mm 0 1mm 0;
+        margin: 1.2mm 0 .8mm 0;
         padding: 0;
     }
 
     .qr-code img {
         display: block;
-        width: 22mm;
-        height: 22mm;
+        width: 19mm;
+        height: 19mm;
+        max-width: 19mm;
         margin: 0 auto;
     }
 
     .footer-text {
-        font-size: 6.2px;
-        line-height: 1.2;
+        width: 100%;
+        max-width: 100%;
+        font-size: 5.8px;
+        line-height: 1.18;
         text-align: center;
-        margin: 1mm 0;
+        margin: .7mm 0;
+        white-space: normal;
         overflow-wrap: anywhere;
+        word-break: break-word;
     }
 
     .footer-url {
-        font-size: 6px;
+        width: 100%;
+        max-width: 100%;
+        font-size: 5.4px;
         line-height: 1.15;
         text-align: center;
-        margin: .7mm 0;
+        margin: .6mm 0;
+        white-space: normal;
         overflow-wrap: anywhere;
+        word-break: break-all;
     }
 
     .footer-auth {
-        font-size: 5.5px;
-        line-height: 1.1;
+        width: 100%;
+        max-width: 100%;
+        font-size: 5.2px;
+        line-height: 1.08;
         text-align: center;
-        margin: .6mm 0;
+        margin: .5mm 0;
+        white-space: normal;
         overflow-wrap: anywhere;
+        word-break: break-all;
     }
 
     .powered-by { display: none; }
