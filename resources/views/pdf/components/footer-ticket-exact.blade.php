@@ -7,14 +7,21 @@
 @endif
 
 <div class="footer-text">
-    Representación impresa del {{ strtoupper($tipo_documento_nombre ?? 'COMPROBANTE DE PAGO ELECTRÓNICO') }}.<br>
+    Representación impresa del
+    {{ strtoupper($tipo_documento_nombre ?? 'COMPROBANTE DE PAGO ELECTRÓNICO') }}.
+</div>
+
+<div class="footer-text">
     Autorizado según normativa SUNAT.
 </div>
 
 @if(isset($hash) && !empty($hash))
-    <div class="footer-auth">HASH: {{ $hash }}</div>
+    <div class="footer-auth">
+        HASH:<br>{{ $hash }}
+    </div>
 @endif
 
 <div class="footer-url">
-    Consulte su comprobante en: {{ config('app.url') }}
+    Consulte su comprobante en:<br>
+    {{ config('app.url') }}
 </div>
