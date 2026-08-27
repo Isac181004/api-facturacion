@@ -1,12 +1,7 @@
 @php
     $numeroComprobante = $document->numero_completo
         ?? (($document->serie ?? '') . '-' . str_pad((string)($document->correlativo ?? ''), 6, '0', STR_PAD_LEFT));
-
-    // En SUNAT BETA se conserva el RUC técnico de pruebas para no romper el envío.
-    // Al pasar la empresa a producción, el encabezado usa automáticamente el RUC real del salón.
-    $rucImpreso = ($company->modo_produccion ?? false)
-        ? config('salon.ruc_real')
-        : ($company->ruc ?? config('salon.ruc_real'));
+    $rucImpreso = config('salon.ruc_real');
 @endphp
 
 <div class="header">
