@@ -28,6 +28,10 @@ Route::prefix('setup')->group(function () {
 Route::post('/auth/initialize', [AuthController::class, 'initialize']);
 Route::post('/auth/login', [AuthController::class, 'login']);
 
+// Puente servidor-a-servidor para el sistema PHP local de ventas.
+// El controlador rechaza cualquier petición que no provenga de loopback.
+Route::post('/integrations/sales/preload', [ComprobantePreloadController::class, 'storeLocalIntegration']);
+
 Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::post('/auth/logout', [AuthController::class, 'logout']);
     Route::get('/auth/me', [AuthController::class, 'me']);
