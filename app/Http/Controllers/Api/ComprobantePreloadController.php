@@ -29,6 +29,8 @@ class ComprobantePreloadController extends Controller
             'items.*.unidad' => 'required|string|in:ZZ,NIU',
             'items.*.cantidad' => 'required|numeric|min:0.001',
             'items.*.precio_final' => 'required|numeric|min:0.01',
+            'items.*.tip_afe_igv' => 'nullable|string|in:10,20,30',
+            'items.*.aplica_igv' => 'nullable|boolean',
         ]);
 
         if (($validated['tipo_comprobante'] ?? 'boleta') === 'factura') {
@@ -42,6 +44,15 @@ class ComprobantePreloadController extends Controller
                 ], 422);
             }
         }
+
+        foreach ($validated['items'] as &$item) {
+            if (empty($item['tip_afe_igv'])) {
+                $item['tip_afe_igv'] = array_key_exists('aplica_igv', $item) && $item['aplica_igv'] === false
+                    ? '30'
+                    : '10';
+            }
+        }
+        unset($item);
 
         $token = Str::random(48);
         Cache::put('comprobante_preload:' . $token, $validated, now()->addMinutes(15));
