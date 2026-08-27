@@ -41,7 +41,7 @@ class DocumentService
                            ->firstOrFail();
             
             // Crear o buscar cliente
-            $client = $this->getOrCreateClient($data['client']);
+            $client = $this->getOrCreateClient($data['client'], $company->id);
             
             // Obtener siguiente correlativo
             $serie = $data['serie'];
@@ -123,7 +123,7 @@ class DocumentService
                            ->firstOrFail();
             
             // Crear o buscar cliente
-            $client = $this->getOrCreateClient($data['client']);
+            $client = $this->getOrCreateClient($data['client'], $company->id);
             
             // Obtener siguiente correlativo
             $serie = $data['serie'];
@@ -278,22 +278,39 @@ class DocumentService
         }
     }
 
-    protected function getOrCreateClient(array $clientData): Client
+    protected function getOrCreateClient(array $clientData, int $companyId): Client
     {
-        return Client::firstOrCreate([
+        $client = Client::firstOrNew([
+            'company_id' => $companyId,
             'tipo_documento' => $clientData['tipo_documento'],
             'numero_documento' => $clientData['numero_documento'],
-        ], [
-            'razon_social' => $clientData['razon_social'],
-            'nombre_comercial' => $clientData['nombre_comercial'] ?? null,
-            'direccion' => $clientData['direccion'] ?? null,
-            'ubigeo' => $clientData['ubigeo'] ?? null,
-            'distrito' => $clientData['distrito'] ?? null,
-            'provincia' => $clientData['provincia'] ?? null,
-            'departamento' => $clientData['departamento'] ?? null,
-            'telefono' => $clientData['telefono'] ?? null,
-            'email' => $clientData['email'] ?? null,
         ]);
+
+        $fields = [
+            'razon_social',
+            'nombres',
+            'apellido_paterno',
+            'apellido_materno',
+            'nombre_comercial',
+            'direccion',
+            'ubigeo',
+            'distrito',
+            'provincia',
+            'departamento',
+            'telefono',
+            'email',
+        ];
+
+        foreach ($fields as $field) {
+            if (array_key_exists($field, $clientData) && $clientData[$field] !== null && $clientData[$field] !== '') {
+                $client->{$field} = $clientData[$field];
+            }
+        }
+
+        $client->activo = true;
+        $client->save();
+
+        return $client;
     }
 
     protected function calculateTotals(array &$detalles, array $globalData = []): array
@@ -887,7 +904,7 @@ class DocumentService
                            ->firstOrFail();
             
             // Crear o buscar cliente
-            $client = $this->getOrCreateClient($data['client']);
+            $client = $this->getOrCreateClient($data['client'], $company->id);
             
             // Obtener siguiente correlativo
             $serie = $data['serie'];
@@ -1007,7 +1024,7 @@ class DocumentService
                            ->firstOrFail();
             
             // Crear o buscar cliente
-            $client = $this->getOrCreateClient($data['client']);
+            $client = $this->getOrCreateClient($data['client'], $company->id);
             
             // Obtener siguiente correlativo
             $serie = $data['serie'];
@@ -1126,7 +1143,7 @@ class DocumentService
             if (isset($data['destinatario_id'])) {
                 $destinatario = Client::findOrFail($data['destinatario_id']);
             } else {
-                $destinatario = $this->getOrCreateClient($data['destinatario']);
+                $destinatario = $this->getOrCreateClient($data['destinatario'], $company->id);
             }
             
             // Obtener siguiente correlativo automático (ignorar correlativo enviado)
@@ -1820,7 +1837,7 @@ class DocumentService
                            ->firstOrFail();
             
             // Crear o buscar el proveedor
-            $proveedor = $this->getOrCreateClient($data['proveedor']);
+            $proveedor = $this->getOrCreateClient($data['proveedor'], $company->id);
             
             // Obtener siguiente correlativo (tipo '20' para retenciones)
             $serie = $data['serie'];

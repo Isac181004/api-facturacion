@@ -32,6 +32,7 @@ use Greenter\Model\Voided\Voided;
 use Greenter\Model\Voided\VoidedDetail;
 use Greenter\Ws\Services\SunatEndpoints;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Exception;
 
 class GreenterService
@@ -58,20 +59,12 @@ class GreenterService
         
         // Configurar certificado cargando desde archivo
         try {
-            $certificadoPath = storage_path('app/public/certificado/certificado.pem');
-            
-            if (!file_exists($certificadoPath)) {
-                throw new Exception("Archivo de certificado no encontrado: " . $certificadoPath);
-            }
-            
-            $certificadoContent = file_get_contents($certificadoPath);
-            
-            if ($certificadoContent === false) {
-                throw new Exception("No se pudo leer el archivo de certificado");
-            }
-            
+            [$certificadoPath, $certificadoContent] = $this->readCertificate();
             $see->setCertificate($certificadoContent);
-            Log::info("Certificado cargado desde archivo: " . $certificadoPath);
+            Log::info('Certificado cargado desde almacenamiento privado', [
+                'path' => basename($certificadoPath),
+                'company_id' => $this->company->id,
+            ]);
         } catch (Exception $e) {
             Log::error("Error al configurar certificado: " . $e->getMessage());
             throw new Exception("Error al configurar certificado: " . $e->getMessage());
@@ -110,20 +103,12 @@ class GreenterService
         
         // Configurar certificado
         try {
-            $certificadoPath = storage_path('app/public/certificado/certificado.pem');
-            
-            if (!file_exists($certificadoPath)) {
-                throw new Exception("Archivo de certificado no encontrado para GRE: " . $certificadoPath);
-            }
-            
-            $certificadoContent = file_get_contents($certificadoPath);
-            
-            if ($certificadoContent === false) {
-                throw new Exception("No se pudo leer el archivo de certificado para GRE");
-            }
-            
+            [$certificadoPath, $certificadoContent] = $this->readCertificate();
             $api->setCertificate($certificadoContent);
-            Log::info("Certificado GRE cargado desde archivo: " . $certificadoPath);
+            Log::info('Certificado GRE cargado desde almacenamiento privado', [
+                'path' => basename($certificadoPath),
+                'company_id' => $this->company->id,
+            ]);
         } catch (Exception $e) {
             Log::error("Error al configurar certificado para GRE: " . $e->getMessage());
             throw new Exception("Error al configurar certificado para GRE: " . $e->getMessage());
@@ -153,6 +138,39 @@ class GreenterService
         ]);
         
         return $api;
+    }
+
+    private function readCertificate(): array
+    {
+        $relativePath = ltrim(
+            (string) ($this->company->certificado_pem ?: 'certificado/certificado.pem'),
+            '/'
+        );
+        $privatePath = Storage::disk('local')->path($relativePath);
+
+        if (is_file($privatePath)) {
+            $content = file_get_contents($privatePath);
+
+            if ($content !== false) {
+                return [$privatePath, $content];
+            }
+        }
+
+        $legacyPath = storage_path('app/public/' . $relativePath);
+
+        if (is_file($legacyPath)) {
+            $content = file_get_contents($legacyPath);
+
+            if ($content !== false) {
+                Log::warning('El certificado todavía está en almacenamiento público; vuelva a cargarlo para migrarlo a privado.', [
+                    'company_id' => $this->company->id,
+                ]);
+
+                return [$legacyPath, $content];
+            }
+        }
+
+        throw new Exception('No se encontró el certificado digital de la empresa en el almacenamiento privado.');
     }
 
     public function getGreenterCompany(): GreenterCompany
