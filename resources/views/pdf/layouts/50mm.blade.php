@@ -34,13 +34,13 @@
 
     .logo-section-ticket {
         text-align: center;
-        margin: 0 0 .8mm 0;
+        margin: 0 0 .6mm 0;
     }
 
     .logo-img-ticket {
         display: block;
-        width: 30mm;
-        max-height: 22mm;
+        width: 22mm;
+        max-height: 16mm;
         object-fit: contain;
         margin: 0 auto;
     }
@@ -54,7 +54,7 @@
     .company-details {
         font-size: 6.8px;
         line-height: 1.2;
-        margin: .5mm 0 1mm 0;
+        margin: .4mm 0 .9mm 0;
         overflow-wrap: anywhere;
     }
 
