@@ -10,7 +10,6 @@
     </div>
 
     <div class="company-details">
-        <strong>{{ config('salon.tagline') }}</strong><br>
         {{ config('salon.direccion') }}<br>
         CEL / WHATSAPP: {{ config('salon.telefono') }}
     </div>
