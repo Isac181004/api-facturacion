@@ -1,415 +1,299 @@
 @extends('pdf.layouts.base')
 
 @section('format-styles')
-    <style>
-        /* ================= BASE ================= */
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+<style>
+    @page { margin: 0; }
 
-        body {
-            font-family: 'Helvetica', Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            padding: 10px;
-        }
+    * {
+        box-sizing: border-box;
+    }
 
-        .ticket-container {
-            width: 100%;
-            max-width: 188px; /* Approximated for 50mm */
-            background-color: white;
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-            border-radius: 8px;
-            overflow: hidden;
-            margin: 0 auto;
-        }
+    html,
+    body {
+        margin: 0;
+        padding: 0;
+        width: 50mm;
+        color: #000;
+        background: #fff;
+        font-family: DejaVu Sans, Arial, sans-serif;
+        font-size: 7.4px;
+        line-height: 1.18;
+    }
 
-        .ticket {
-            width: 50mm;
-            /* Ancho estándar para tickets de 50mm */
-            padding: 5pt;
-            margin: 0 auto;
-        }
+    /*
+     * Perfil para impresora térmica con rollo físico de 58mm.
+     * Se usan 50mm de ancho PDF como zona imprimible segura para evitar
+     * que las impresoras con márgenes mecánicos corten texto o QR.
+     */
+    .container {
+        width: 50mm;
+        margin: 0;
+        padding: 1.5mm 1.6mm 2mm 1.6mm;
+    }
 
-        /* ================= HEADER ================= */
-        .header {
-            text-align: center;
-            margin-bottom: 2px;
-            padding-bottom: 2px;
-            border-bottom: 1px dashed #ccc;
-        }
+    .header {
+        width: 100%;
+        text-align: center;
+        padding: 0 0 2mm 0;
+        margin: 0 0 1.5mm 0;
+        border-bottom: .25mm dashed #000;
+    }
 
-        .logo-section-ticket {
-            text-align: center;
-            margin-bottom: 1px;
-        }
+    .logo-section-ticket {
+        text-align: center;
+        margin: 0 0 1mm 0;
+    }
 
-        .logo-img-ticket {
-            width: 75px;
-            height: 31px;
-            object-fit: contain;
-            display: block;
-            margin: 0 auto 1px;
-            padding: 1px;
-        }
+    .logo-img-ticket {
+        display: block;
+        width: 24mm;
+        max-height: 15mm;
+        object-fit: contain;
+        margin: 0 auto;
+    }
 
-        .company-name {
-            font-size: 9px;
-            font-weight: bold;
-            margin-bottom: 1px;
-            text-transform: uppercase;
-            color: #000;
-        }
+    .company-name {
+        font-size: 9px;
+        line-height: 1.15;
+        font-weight: bold;
+        text-transform: uppercase;
+        margin: .5mm 0;
+    }
 
-        .company-ruc {
-            font-size: 8px;
-            font-weight: bold;
-            margin-bottom: 1px;
-        }
+    .company-ruc {
+        font-size: 8px;
+        font-weight: bold;
+        margin: .4mm 0;
+    }
 
-        .company-details {
-            font-size: 8px;
-            line-height: 1.1;
-            margin-bottom: 2px;
-        }
+    .company-details {
+        font-size: 6.8px;
+        line-height: 1.2;
+        margin: .5mm 0 1mm 0;
+        overflow-wrap: anywhere;
+    }
 
-        /* ================= DOCUMENT TITLE ================= */
-        .document-title {
-            font-size: 8px;
-            font-weight: bold;
-            text-align: center;
-            margin: 3px 0;
-            text-transform: uppercase;
-            padding: 2px 0;
-            border-top: 1px dashed #ccc;
-            border-bottom: 1px dashed #ccc;
-        }
+    .document-title {
+        font-size: 8.2px;
+        font-weight: bold;
+        line-height: 1.15;
+        text-transform: uppercase;
+        padding: 1mm 0 .7mm 0;
+        margin: .8mm 0 0 0;
+        border-top: .25mm solid #000;
+    }
 
-        .document-number {
-            font-size: 8px;
-            font-weight: bold;
-            text-align: center;
-            margin-bottom: 3px;
-        }
+    .document-number {
+        font-size: 9px;
+        font-weight: bold;
+        padding: .5mm 0 0 0;
+    }
 
-        /* ================= CLIENT INFO ================= */
-        .client-section {
-            margin: 3px 0;
-            font-size: 8px;
-            padding: 2px 0;
-            border-bottom: 1px dashed #ccc;
-        }
+    .client-section {
+        width: 100%;
+        padding: 0 0 1.5mm 0;
+        margin: 0 0 1.5mm 0;
+        border-bottom: .25mm dashed #000;
+        text-align: left;
+    }
 
-        .client-name {
-            font-weight: bold;
-            font-size: 8px;
-            text-align: center;
-            margin-bottom: 1px;
-        }
+    .client-name {
+        font-size: 7.4px;
+        font-weight: bold;
+        line-height: 1.2;
+        text-align: left;
+        margin-bottom: .6mm;
+        overflow-wrap: anywhere;
+    }
 
-        .client-separator {
-            text-align: center;
-            margin: 1px 0;
-            font-size: 8px;
-        }
+    .client-separator {
+        display: none;
+    }
 
-        .client-details {
-            font-size: 8px;
-            margin-bottom: 2px;
-            text-align: center;
-        }
+    .client-details {
+        font-size: 6.9px;
+        line-height: 1.2;
+        text-align: left;
+        margin-bottom: .5mm;
+        overflow-wrap: anywhere;
+    }
 
-        /* ================= ITEMS TABLE ================= */
-        .items-header {
-            border-top: 1px solid #000;
-            border-bottom: 1px solid #000;
-            padding: 1px 0;
-            font-size: 8px;
-            font-weight: bold;
-            margin: 2px 0;
-            display: table;
-            width: 100%;
-            table-layout: fixed;
-        }
+    .items-header {
+        display: table;
+        width: 100%;
+        table-layout: fixed;
+        padding: .7mm 0;
+        margin: 0;
+        border-top: .25mm solid #000;
+        border-bottom: .25mm solid #000;
+        font-size: 6.3px;
+        line-height: 1.1;
+        font-weight: bold;
+    }
 
-        .items-header>div {
-            display: table-cell;
-            text-align: center;
-            vertical-align: middle;
-            padding: 1px;
-        }
+    .items-header > div,
+    .item > div {
+        display: table-cell;
+        vertical-align: top;
+        text-align: center;
+        padding: .2mm .15mm;
+        overflow-wrap: anywhere;
+    }
 
-        .header-cant {
-            width: 15%;
-        }
+    .header-cant, .item-cant { width: 13%; }
+    .header-um, .item-um { width: 12%; }
+    .header-cod, .item-cod { width: 20%; }
+    .header-precio, .item-precio { width: 27%; text-align: right; }
+    .header-total, .item-total { width: 28%; text-align: right; }
 
-        .header-um {
-            width: 10%;
-        }
+    .items-section {
+        width: 100%;
+        margin: 0 0 1.5mm 0;
+        padding: 0 0 1mm 0;
+        border-bottom: .25mm solid #000;
+    }
 
-        .header-cod {
-            width: 15%;
-        }
+    .item {
+        display: table;
+        width: 100%;
+        table-layout: fixed;
+        font-size: 6.5px;
+        line-height: 1.15;
+        margin: .8mm 0 .3mm 0;
+    }
 
-        .header-precio {
-            width: 25%;
-        }
+    .item-descripcion {
+        font-size: 7px;
+        font-weight: bold;
+        line-height: 1.2;
+        text-align: left;
+        margin: 0 0 1mm 0;
+        padding-left: .3mm;
+        overflow-wrap: anywhere;
+    }
 
-        .header-total {
-            width: 20%;
-        }
+    .totals-section {
+        width: 100%;
+        margin: 0;
+        padding: 0;
+        font-size: 7px;
+    }
 
-        .header-desc {
-            width: 15%;
-        }
+    .total-line {
+        display: table;
+        width: 100%;
+        table-layout: fixed;
+        font-size: 7px;
+        line-height: 1.2;
+        margin: 0 0 .5mm 0;
+    }
 
-        .items-section {
-            margin: 2px 0;
-            border-bottom: 1px solid #000;
-            padding-bottom: 2px;
-        }
+    .total-text {
+        display: table-cell;
+        width: 62%;
+        text-align: left;
+        font-weight: normal;
+    }
 
-        .item {
-            margin-bottom: 1px;
-            font-size: 8px;
-            display: table;
-            width: 100%;
-            table-layout: fixed;
-        }
+    .total-dots {
+        display: none;
+    }
 
-        .item>div {
-            display: table-cell;
-            text-align: center;
-            vertical-align: top;
-            padding: 1px;
-        }
+    .total-value {
+        display: table-cell;
+        width: 38%;
+        text-align: right;
+        font-weight: bold;
+        white-space: nowrap;
+    }
 
-        .item-cant {
-            width: 15%;
-        }
+    .total-final {
+        border-top: .25mm solid #000;
+        border-bottom: .25mm solid #000;
+        padding: .8mm 0;
+        margin-top: .8mm;
+    }
 
-        .item-um {
-            width: 10%;
-        }
+    .total-final .total-text,
+    .total-final .total-value {
+        font-size: 8.3px;
+        font-weight: bold;
+    }
 
-        .item-cod {
-            width: 15%;
-        }
+    .total-letras {
+        font-size: 6.8px;
+        font-weight: bold;
+        line-height: 1.2;
+        text-align: left;
+        margin: 1.2mm 0;
+        overflow-wrap: anywhere;
+    }
 
-        .item-precio {
-            width: 25%;
-        }
+    .payment-info {
+        font-size: 6.8px;
+        line-height: 1.2;
+        text-align: left;
+        padding: 1mm 0;
+        margin: 1mm 0;
+        border-top: .25mm dashed #000;
+        border-bottom: .25mm dashed #000;
+    }
 
-        .item-total {
-            width: 20%;
-        }
+    .payment-info div {
+        margin-bottom: .5mm;
+    }
 
-        .item-desc {
-            width: 15%;
-        }
+    .qr-section {
+        text-align: center;
+        margin: 1.5mm 0 1mm 0;
+        padding: 0;
+    }
 
-        .item-descripcion {
-            font-size: 8px;
-            text-align: left;
-            margin-top: 1px;
-        }
+    .qr-code img {
+        display: block;
+        width: 22mm;
+        height: 22mm;
+        margin: 0 auto;
+    }
 
-        /* ================= TOTALS ================= */
-        .totals-section {
-            margin: 2px 0;
-            font-size: 8px;
-            border-top: 1px solid #000;
-            padding-top: 1px;
-        }
+    .footer-text {
+        font-size: 6.2px;
+        line-height: 1.2;
+        text-align: center;
+        margin: 1mm 0;
+        overflow-wrap: anywhere;
+    }
 
-        .total-line {
-            display: block;
-            width: 100%;
-            margin-bottom: 1px;
-            font-weight: bold;
-            font-size: 8px;
-            line-height: 1.2;
-            position: relative;
-        }
+    .footer-url {
+        font-size: 6px;
+        line-height: 1.15;
+        text-align: center;
+        margin: .7mm 0;
+        overflow-wrap: anywhere;
+    }
 
-        .total-text {
-            display: inline-block;
-            float: left;
-            font-weight: bold;
-        }
+    .footer-auth {
+        font-size: 5.5px;
+        line-height: 1.1;
+        text-align: center;
+        margin: .6mm 0;
+        overflow-wrap: anywhere;
+    }
 
-        .total-value {
-            display: inline-block;
-            float: right;
-            font-weight: bold;
-        }
+    .powered-by {
+        display: none;
+    }
 
-        .total-dots {
-            display: inline-block;
-            float: left;
-            font-weight: normal;
-            letter-spacing: 0.3px;
-            overflow: hidden;
-            margin: 0 1px;
-        }
-
-        .total-final {
-            border-top: 1px solid #000;
-            padding-top: 1px;
-            margin-top: 1px;
-            font-size: 8px;
-        }
-
-        .total-final .total-text,
-        .total-final .total-value {
-            font-size: 8px;
-            font-weight: bold;
-        }
-
-        /* Clear floats */
-        .total-line::after {
-            content: "";
-            display: table;
-            clear: both;
-        }
-
-        .total-letras {
-            font-size: 8px;
-            font-weight: bold;
-            margin: 2px 0;
-            text-align: left;
-        }
-
-        /* ================= PAYMENT INFO ================= */
-        .payment-info {
-            font-size: 8px;
-            margin: 2px 0;
-            text-align: left;
-            padding: 2px 0;
-            border-top: 1px dashed #ccc;
-            border-bottom: 1px dashed #ccc;
-        }
-
-        .payment-info div {
-            margin-bottom: 1px;
-        }
-
-        /* ================= QR AND FOOTER ================= */
-        .qr-section {
-            text-align: center;
-            margin: 3px 0;
-            padding: 3px 0;
-            border-bottom: 1px dashed #ccc;
-        }
-
-        .qr-code img {
-            width: 60px;
-            height: 60px;
-            margin: 2px 0;
-        }
-
-        .footer-text {
-            font-size: 8px;
-            text-align: center;
-            line-height: 1.1;
-            margin: 1px 0;
-        }
-
-        .footer-url {
-            font-size: 8px;
-            text-align: center;
-            font-weight: bold;
-            margin: 1px 0;
-        }
-
-        .footer-auth {
-            font-size: 7px;
-            text-align: center;
-            margin: 1px 0;
-        }
-
-        .powered-by {
-            font-size: 7px;
-            text-align: center;
-            margin-top: 1px;
-            color: #888;
-        }
-
-        /* ================= UTILITIES ================= */
-        .text-bold {
-            font-weight: bold;
-        }
-
-        .text-center {
-            text-align: center;
-        }
-
-        .text-left {
-            text-align: left;
-        }
-
-        .text-right {
-            text-align: right;
-        }
-
-        /* ================= PRINT STYLES ================= */
-        @media print {
-            body {
-                background: none;
-                margin: 0;
-                padding: 0;
-            }
-
-            .ticket-container {
-                box-shadow: none;
-                border-radius: 0;
-                width: 50mm;
-            }
-
-            .ticket {
-                width: 50mm;
-                padding: 0;
-                margin: 0;
-            }
-
-            .no-print {
-                display: none;
-            }
-        }
-
-        /* ================= ACTION BUTTONS ================= */
-        .actions {
-            text-align: center;
-            margin-top: 10px;
-        }
-
-        .btn {
-            background-color: #4CAF50;
-            border: none;
-            color: white;
-            padding: 5px 10px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 12px;
-            margin: 2px 1px;
-            cursor: pointer;
-            border-radius: 4px;
-            transition: background-color 0.3s;
-        }
-
-        .btn:hover {
-            background-color: #45a049;
-        }
-    </style>
+    .actions,
+    .btn,
+    .no-print {
+        display: none !important;
+    }
+</style>
 @endsection
 
 @section('body-content')
-    <div class="container">
-        @yield('content')
-    </div>
+<div class="container">
+    @yield('content')
+</div>
 @endsection
