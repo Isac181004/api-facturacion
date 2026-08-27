@@ -1,7 +1,5 @@
 @php
-    $rucImpreso = ($company->modo_produccion ?? false)
-        ? config('salon.ruc_real')
-        : ($company->ruc ?? config('salon.ruc_real'));
+    $rucImpreso = config('salon.ruc_real');
 @endphp
 
 <table style="width:100%;border-collapse:collapse;margin-bottom:18px;">
