@@ -6,13 +6,12 @@
     <tr>
         <td style="width:30%;text-align:center;vertical-align:middle;padding:8px;">
             @include('pdf.components.logo-maju-gimena', [
-                'style' => 'max-width:145px;max-height:105px;display:block;margin:0 auto;'
+                'style' => 'max-width:100px;max-height:75px;display:block;margin:0 auto;'
             ])
         </td>
 
         <td style="width:40%;vertical-align:middle;padding:10px 8px;">
             <div style="font-size:10px;line-height:1.55;">
-                <strong>{{ config('salon.tagline') }}</strong><br>
                 {{ config('salon.direccion') }}<br>
                 CELULAR / WHATSAPP: {{ config('salon.telefono') }}
             </div>
