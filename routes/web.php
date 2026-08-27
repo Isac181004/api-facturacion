@@ -7,7 +7,7 @@ Route::get('/', function () {
 });
 
 Route::get('/comprobantes/manual', function () {
-    return view('boletas.manual');
+    return view('boletas.manual-integration');
 })->name('comprobantes.manual');
 
 Route::get('/boletas/manual', function () {
