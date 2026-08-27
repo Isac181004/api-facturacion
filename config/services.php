@@ -35,12 +35,13 @@ return [
         ],
     ],
 
-    'apiinti' => [
-    'key' => env('APIINTI_KEY'),
-    'base_url' => env(
-        'APIINTI_BASE_URL',
-        'https://app.apiinti.dev/api/v1'
-    ),
-],
+    'document_lookup' => [
+        'driver' => env('DOCUMENT_LOOKUP_DRIVER', 'apiinti'),
+        'cache_hours' => env('DOCUMENT_LOOKUP_CACHE_HOURS', 24),
+        'apiinti' => [
+            'key' => env('APIINTI_KEY'),
+            'base_url' => env('APIINTI_BASE_URL', 'https://app.apiinti.dev/api/v1'),
+        ],
+    ],
 
 ];

@@ -159,10 +159,13 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/{id}/download-pdf', [BoletaController::class, 'downloadPdf']);
         Route::post('/{id}/generate-pdf', [BoletaController::class, 'generatePdf']);
     });
-Route::get(
-    '/documentos/consultar',
-    [ConsultaDocumentoController::class, 'consultar']
-);
+    Route::prefix('documentos')->middleware('throttle:30,1')->group(function () {
+        Route::get('/consultar', [ConsultaDocumentoController::class, 'consultar']);
+        Route::get('/dni/{numero}', [ConsultaDocumentoController::class, 'consultarDni'])
+            ->whereNumber('numero');
+        Route::get('/ruc/{numero}', [ConsultaDocumentoController::class, 'consultarRuc'])
+            ->whereNumber('numero');
+    });
 
     // ========================
     // CONSULTA DE COMPROBANTES ELECTRÓNICOS (CPE)

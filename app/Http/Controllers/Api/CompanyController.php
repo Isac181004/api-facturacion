@@ -256,7 +256,12 @@ class CompanyController extends Controller
 
         // Procesar archivos
         if ($request->hasFile('certificado_pem')) {
-            $validatedData['certificado_pem'] = $this->storeFile($request->file('certificado_pem'), 'certificado', 'certificado.pem');
+            $validatedData['certificado_pem'] = $this->storeFile(
+                $request->file('certificado_pem'),
+                'certificado',
+                'certificado.pem',
+                'local'
+            );
         }
 
         if ($request->hasFile('logo_path')) {
@@ -278,9 +283,9 @@ class CompanyController extends Controller
     /**
      * Almacenar archivo
      */
-    private function storeFile($file, string $directory, string $fileName): string
+    private function storeFile($file, string $directory, string $fileName, string $disk = 'public'): string
     {
-        return $file->storeAs($directory, $fileName, 'public');
+        return $file->storeAs($directory, $fileName, $disk);
     }
 
     /**

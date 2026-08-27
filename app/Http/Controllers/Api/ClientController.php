@@ -73,10 +73,13 @@ class ClientController extends Controller
     {
         try {
             $validator = Validator::make($request->all(), [
-                'company_id' => 'nullable|integer|exists:companies,id',
+                'company_id' => 'required|integer|exists:companies,id',
                 'tipo_documento' => 'required|string|in:1,4,6,7,0', // DNI, CE, RUC, PAS, SIN DOC
                 'numero_documento' => 'required|string|max:20',
                 'razon_social' => 'required|string|max:255',
+                'nombres' => 'nullable|string|max:150',
+                'apellido_paterno' => 'nullable|string|max:100',
+                'apellido_materno' => 'nullable|string|max:100',
                 'nombre_comercial' => 'nullable|string|max:255',
                 'direccion' => 'nullable|string|max:255',
                 'ubigeo' => 'nullable|string|size:6',
@@ -186,6 +189,9 @@ class ClientController extends Controller
                 'tipo_documento' => 'required|string|in:1,4,6,7,0',
                 'numero_documento' => 'required|string|max:20',
                 'razon_social' => 'required|string|max:255',
+                'nombres' => 'nullable|string|max:150',
+                'apellido_paterno' => 'nullable|string|max:100',
+                'apellido_materno' => 'nullable|string|max:100',
                 'nombre_comercial' => 'nullable|string|max:255',
                 'direccion' => 'nullable|string|max:255',
                 'ubigeo' => 'nullable|string|size:6',
@@ -335,7 +341,8 @@ class ClientController extends Controller
             $clients = $company->clients()
                              ->select([
                                  'id', 'company_id', 'tipo_documento', 'numero_documento',
-                                 'razon_social', 'nombre_comercial', 'direccion',
+                                 'razon_social', 'nombres', 'apellido_paterno', 'apellido_materno',
+                                 'nombre_comercial', 'direccion',
                                  'distrito', 'provincia', 'departamento',
                                  'telefono', 'email', 'activo',
                                  'created_at', 'updated_at'

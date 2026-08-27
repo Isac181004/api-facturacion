@@ -25,6 +25,10 @@
 /storage/app/public/certificado/*.pfx
 /storage/app/public/certificado/*.p12
 /storage/app/temp/certificados/
+/ejemplos-postman/certificado_prueba/*.pem
+*.key
+*.pfx
+*.p12
 /vendor
 Homestead.json
 Homestead.yaml

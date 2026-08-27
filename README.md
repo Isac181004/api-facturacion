@@ -45,8 +45,8 @@ Sistema completo de facturación electrónica para SUNAT Perú desarrollado con 
 
 1. **Clonar el repositorio**
 ```bash
-git clone clone https://github.com/yorchavez9/Api-de-facturacion-electronica-sunat-Peru.git
-cd Api-de-facturacion-electronica-sunat-Peru
+git clone https://github.com/Isac181004/api-facturacion.git
+cd api-facturacion
 ```
 
 2. **Instalar dependencias**
@@ -110,6 +110,55 @@ openssl pkcs12 -in certificado.pfx -out certificado_correcto.pem -nodes
 
 ## 📚 Documentación de la API
 
+### Interfaz web de facturación
+
+Después de iniciar el servidor, abra una de estas direcciones:
+
+```text
+http://127.0.0.1:8000/
+http://127.0.0.1:8000/facturacion
+```
+
+La interfaz permite:
+
+- Iniciar sesión con un usuario de la API.
+- Seleccionar empresa y sucursal sin identificadores fijos.
+- Crear facturas y boletas.
+- Buscar primero un cliente guardado y, si es nuevo, consultar DNI o RUC.
+- Mostrar nombres y apellidos separados para DNI.
+- Mostrar razón social, dirección, estado y condición para RUC.
+- Agregar múltiples productos o servicios y calcular IGV.
+- Enviar el comprobante a SUNAT y descargar PDF, XML y CDR.
+
+### Consulta automática de DNI y RUC
+
+Configure el proveedor de consulta en `.env`:
+
+```env
+DOCUMENT_LOOKUP_DRIVER=apiinti
+DOCUMENT_LOOKUP_CACHE_HOURS=24
+APIINTI_KEY=coloque_aqui_su_token
+APIINTI_BASE_URL=https://app.apiinti.dev/api/v1
+```
+
+Después de modificar `.env`, limpie la configuración:
+
+```bash
+php artisan config:clear
+```
+
+Rutas disponibles con autenticación Bearer:
+
+```text
+GET /api/v1/documentos/consultar?tipo=1&numero=12345678
+GET /api/v1/documentos/dni/12345678
+GET /api/v1/documentos/ruc/20601234567
+```
+
+RENIEC ofrece su Web Service de Datos mediante solicitud y convenio para empresas.
+SUNAT ofrece el Padrón Reducido del RUC para descarga. La integración actual mantiene
+el proveedor encapsulado para que pueda sustituirse cuando se cuente con acceso oficial.
+
 ### 🎥 Video Tutorial Completo
 **Aprende a implementar el sistema paso a paso:**
 👉 **[Ver Playlist Completa en YouTube](https://www.youtube.com/watch?v=HrrEdjY_7MU&list=PLfwfiNJ5Qw-ZlCfGnWjnILOI4OJfJkGp5)**
@@ -149,32 +198,11 @@ En el directorio `ejemplos-postman/` encontrarás colecciones completas listas p
 - Realiza pruebas exhaustivas antes de usar en producción
 - Mantén actualizadas las librerías de seguridad
 
-## 🤝 Soporte y Donaciones
+## 🤝 Contribuciones
 
-Si este proyecto te ha sido útil y deseas apoyar su desarrollo:
-
-### 💰 Yape (Perú)
-<p align="center">
-  <img src="./public/assets/images/yape.png" alt="Yape" width="100">
-</p>
-
-**Número:** `920468502`
-
-### 💬 WhatsApp
-**Contacto:** [https://wa.link/z50dwk](https://wa.link/z50dwk)
-
-### 📧 Contribuciones
 - Fork el proyecto
 - Crea una rama para tu feature
 - Envía un pull request
-
----
-
-## 📞 Contacto
-
-Para consultas técnicas o colaboraciones:
-- **WhatsApp**: [https://wa.link/z50dwk](https://wa.link/z50dwk)
-- **Yape**: 920468502
 
 ---
 

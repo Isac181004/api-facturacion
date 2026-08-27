@@ -1,3 +1,7 @@
 
-Ruc a usar de prueba: 20161515648
-Clave certificado: 123456
+El certificado de ejemplo fue retirado del repositorio por seguridad.
+
+Para probar la firma, use un certificado propio únicamente en una ruta ignorada
+por Git, por ejemplo storage/app/private/certificado/certificado.pem.
+
+Nunca publique certificados que contengan una sección BEGIN PRIVATE KEY.
