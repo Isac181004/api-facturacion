@@ -1,5 +1,5 @@
-<div class="items-header items-header-description">
-    <div>DETALLE DE VENTA</div>
+<div class="items-header" style="border-bottom:.25mm solid #000;font-size:6.2px;padding:.7mm 0;">
+    <div style="width:100%;text-align:left;padding-left:.2mm;">DETALLE DE VENTA</div>
 </div>
 
 <div class="items-section">
@@ -28,30 +28,35 @@
             $descripcion = trim((string)($detalle['descripcion'] ?? ''));
         @endphp
 
-        <div class="item-ticket-block">
-            <div class="item-descripcion">{{ strtoupper($descripcion) }}</div>
-            <div class="item-tax">{{ $igvTexto }}</div>
+        <div style="width:100%;padding:1.1mm .2mm 1mm .2mm;border-bottom:.18mm dashed #888;">
+            <div class="item-descripcion" style="font-size:6.9px;line-height:1.2;margin:0 0 .45mm 0;padding:0;font-weight:bold;">
+                {{ strtoupper($descripcion) }}
+            </div>
 
-            <div class="item item-values">
-                <div class="item-cant">
-                    <span class="item-label">CANT.</span>
-                    <strong>{{ number_format($cantidad, $cantidad == floor($cantidad) ? 0 : 3) }}</strong>
+            <div class="item-tax" style="font-size:5.7px;margin:0 0 .75mm 0;padding:0;">
+                {{ $igvTexto }}
+            </div>
+
+            <div style="display:table;width:100%;table-layout:fixed;font-size:6.1px;line-height:1.12;">
+                <div style="display:table-cell;width:17%;text-align:center;vertical-align:top;">
+                    <div style="font-size:5.2px;font-weight:bold;">CANT.</div>
+                    <div>{{ number_format($cantidad, $cantidad == floor($cantidad) ? 0 : 3) }}</div>
                 </div>
-                <div class="item-um">
-                    <span class="item-label">U.M.</span>
-                    <strong>{{ $unidadVisible }}</strong>
+                <div style="display:table-cell;width:19%;text-align:center;vertical-align:top;">
+                    <div style="font-size:5.2px;font-weight:bold;">U.M.</div>
+                    <div>{{ $unidadVisible }}</div>
                 </div>
-                <div class="item-precio">
-                    <span class="item-label">P.UNIT</span>
-                    <strong>{{ number_format($precioFinalUnitario, 2) }}</strong>
+                <div style="display:table-cell;width:31%;text-align:right;vertical-align:top;padding-right:.6mm;">
+                    <div style="font-size:5.2px;font-weight:bold;">P.UNIT</div>
+                    <div>{{ number_format($precioFinalUnitario, 2) }}</div>
                 </div>
-                <div class="item-total">
-                    <span class="item-label">TOTAL</span>
-                    <strong>{{ number_format($totalFinalLinea, 2) }}</strong>
+                <div style="display:table-cell;width:33%;text-align:right;vertical-align:top;">
+                    <div style="font-size:5.2px;font-weight:bold;">TOTAL</div>
+                    <div style="font-weight:bold;">{{ number_format($totalFinalLinea, 2) }}</div>
                 </div>
             </div>
         </div>
     @empty
-        <div class="item-empty">Sin items</div>
+        <div style="width:100%;text-align:center;padding:2mm 0;">Sin items</div>
     @endforelse
 </div>
