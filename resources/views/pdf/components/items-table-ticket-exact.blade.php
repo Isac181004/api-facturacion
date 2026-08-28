@@ -1,8 +1,11 @@
-<div class="items-header" style="border-bottom:.25mm solid #000;font-size:6.2px;padding:.7mm 0;">
-    <div style="width:100%;text-align:left;padding-left:.2mm;">DETALLE DE VENTA</div>
+<div class="items-header" style="display:table;width:100%;table-layout:fixed;border-top:.25mm solid #000;border-bottom:.25mm solid #000;font-size:5.9px;font-weight:bold;padding:.65mm 0;line-height:1.05;">
+    <div style="display:table-cell;width:18%;text-align:left;padding-left:.2mm;">[ CANT. ]</div>
+    <div style="display:table-cell;width:47%;text-align:left;">DESCRIPCIÓN</div>
+    <div style="display:table-cell;width:16%;text-align:right;padding-right:.5mm;">P/U</div>
+    <div style="display:table-cell;width:19%;text-align:right;">TOTAL</div>
 </div>
 
-<div class="items-section">
+<div class="items-section" style="border-bottom:.25mm solid #000;margin-bottom:1mm;padding-bottom:.4mm;">
     @forelse($detalles as $detalle)
         @php
             $unidadCodigo = strtoupper((string)($detalle['unidad'] ?? ''));
@@ -21,6 +24,7 @@
             };
 
             $cantidad = (float)($detalle['cantidad'] ?? 1);
+            $cantidadVisible = number_format($cantidad, $cantidad == floor($cantidad) ? 0 : 3);
             $valorVenta = (float)($detalle['mto_valor_venta'] ?? 0);
             $impuestos = (float)($detalle['total_impuestos'] ?? ($detalle['igv'] ?? 0));
             $precioFinalUnitario = (float)($detalle['mto_precio_unitario'] ?? ($detalle['mto_valor_unitario'] ?? 0));
@@ -28,32 +32,28 @@
             $descripcion = trim((string)($detalle['descripcion'] ?? ''));
         @endphp
 
-        <div style="width:100%;padding:1.1mm .2mm 1mm .2mm;border-bottom:.18mm dashed #888;">
-            <div class="item-descripcion" style="font-size:6.9px;line-height:1.2;margin:0 0 .45mm 0;padding:0;font-weight:bold;">
-                {{ strtoupper($descripcion) }}
+        <div style="width:100%;padding:.85mm .15mm .7mm .15mm;{{ !$loop->last ? 'border-bottom:.18mm dashed #999;' : '' }}">
+            <div style="display:table;width:100%;table-layout:fixed;font-size:6.25px;line-height:1.16;">
+                <div style="display:table-cell;width:18%;text-align:left;vertical-align:top;font-weight:bold;white-space:nowrap;">
+                    [{{ $cantidadVisible }}]
+                </div>
+
+                <div style="display:table-cell;width:47%;text-align:left;vertical-align:top;padding-right:.5mm;white-space:normal;overflow-wrap:break-word;word-break:normal;">
+                    <span style="font-weight:bold;">{{ $unidadVisible }}</span>
+                    {{ strtoupper($descripcion) }}
+                </div>
+
+                <div style="display:table-cell;width:16%;text-align:right;vertical-align:top;padding-right:.5mm;white-space:nowrap;">
+                    {{ number_format($precioFinalUnitario, 2) }}
+                </div>
+
+                <div style="display:table-cell;width:19%;text-align:right;vertical-align:top;font-weight:bold;white-space:nowrap;">
+                    {{ number_format($totalFinalLinea, 2) }}
+                </div>
             </div>
 
-            <div class="item-tax" style="font-size:5.7px;margin:0 0 .75mm 0;padding:0;">
+            <div style="margin-left:18%;padding-top:.35mm;font-size:5.45px;line-height:1.08;text-align:left;font-weight:normal;">
                 {{ $igvTexto }}
-            </div>
-
-            <div style="display:table;width:100%;table-layout:fixed;font-size:6.1px;line-height:1.12;">
-                <div style="display:table-cell;width:17%;text-align:center;vertical-align:top;">
-                    <div style="font-size:5.2px;font-weight:bold;">CANT.</div>
-                    <div>{{ number_format($cantidad, $cantidad == floor($cantidad) ? 0 : 3) }}</div>
-                </div>
-                <div style="display:table-cell;width:19%;text-align:center;vertical-align:top;">
-                    <div style="font-size:5.2px;font-weight:bold;">U.M.</div>
-                    <div>{{ $unidadVisible }}</div>
-                </div>
-                <div style="display:table-cell;width:31%;text-align:right;vertical-align:top;padding-right:.6mm;">
-                    <div style="font-size:5.2px;font-weight:bold;">P.UNIT</div>
-                    <div>{{ number_format($precioFinalUnitario, 2) }}</div>
-                </div>
-                <div style="display:table-cell;width:33%;text-align:right;vertical-align:top;">
-                    <div style="font-size:5.2px;font-weight:bold;">TOTAL</div>
-                    <div style="font-weight:bold;">{{ number_format($totalFinalLinea, 2) }}</div>
-                </div>
             </div>
         </div>
     @empty
