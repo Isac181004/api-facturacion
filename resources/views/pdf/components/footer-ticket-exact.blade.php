@@ -1,34 +1,27 @@
-{{-- PDF Ticket Footer Component (Exact Design Match) --}}
-{{-- Props: $qr_code, $hash, $document, $tipo_documento_nombre --}}
-
-{{-- QR Code Section --}}
 @if(isset($qr_code) && !empty($qr_code))
     <div class="qr-section">
         <div class="qr-code">
-            <img src="{{ $qr_code }}" alt="QR Code">
+            <img src="{{ $qr_code }}" alt="Código QR">
         </div>
     </div>
 @endif
 
-{{-- Footer Text --}}
 <div class="footer-text">
-    Representación impresa de la {{ strtoupper($tipo_documento_nombre ?? 'BOLETA DE VENTA ELECTRONICA') }}.<br>
-    Puede verificarla en www.sunat.gob.pe
+    Representación impresa del
+    {{ strtoupper($tipo_documento_nombre ?? 'COMPROBANTE DE PAGO ELECTRÓNICO') }}.
 </div>
 
-{{-- Hash Code --}}
+<div class="footer-text">
+    Autorizado según normativa SUNAT.
+</div>
+
 @if(isset($hash) && !empty($hash))
     <div class="footer-auth">
-        {{ $hash }}
+        HASH:<br>{{ $hash }}
     </div>
 @endif
 
-{{-- Footer URL --}}
 <div class="footer-url">
-    www.nubefact.com
-</div>
-
-{{-- Powered By --}}
-<div class="powered-by">
-    Powered by NUBEFACT
+    Consulte su comprobante en:<br>
+    {{ config('app.url') }}
 </div>

@@ -10,14 +10,17 @@ use Illuminate\Http\JsonResponse;
 trait HandlesPdfGeneration
 {
     /**
-     * Generar PDF para cualquier tipo de documento
+     * Generar PDF para cualquier tipo de documento.
+     *
+     * Para la aplicación del Salón & Spa el formato predeterminado es 50mm,
+     * que corresponde al ancho imprimible seguro de una impresora térmica
+     * con rollo físico de 58mm. A4/A5/80mm siguen disponibles usando ?format=.
      */
     protected function generateDocumentPdf($document, string $documentType, Request $request): JsonResponse
     {
         try {
-            $format = $request->get('format', 'A4');
-            
-            // Validar formato
+            $format = $request->get('format', '50mm');
+
             $pdfService = app(PdfService::class);
             if (!$pdfService->isValidFormat($format)) {
                 return response()->json([
@@ -25,8 +28,7 @@ trait HandlesPdfGeneration
                     'message' => 'Formato no válido. Formatos disponibles: ' . implode(', ', $pdfService->getAvailableFormats())
                 ], 400);
             }
-            
-            // Generar PDF según el tipo de documento
+
             $pdfContent = match($documentType) {
                 'invoice' => $pdfService->generateInvoicePdf($document, $format),
                 'boleta' => $pdfService->generateBoletaPdf($document, $format),
@@ -36,14 +38,12 @@ trait HandlesPdfGeneration
                 'daily-summary' => $pdfService->generateDailySummaryPdf($document, $format),
                 default => throw new \InvalidArgumentException("Tipo de documento no soportado: {$documentType}")
             };
-            
-            // Guardar PDF
+
             $fileService = app(FileService::class);
             $pdfPath = $fileService->savePdf($document, $pdfContent, $format);
-            
-            // Actualizar ruta en la base de datos
+
             $document->update(['pdf_path' => $pdfPath]);
-            
+
             return response()->json([
                 'success' => true,
                 'message' => "PDF generado correctamente en formato {$format}",
@@ -65,14 +65,13 @@ trait HandlesPdfGeneration
     }
 
     /**
-     * Descargar PDF con validación de formato
+     * Descargar PDF con validación de formato.
      */
     protected function downloadDocumentPdf($document, Request $request)
     {
         try {
-            $format = $request->get('format', 'A4');
-            
-            // Validar formato
+            $format = $request->get('format', '50mm');
+
             $pdfService = app(PdfService::class);
             if (!$pdfService->isValidFormat($format)) {
                 return response()->json([
@@ -80,17 +79,17 @@ trait HandlesPdfGeneration
                     'message' => 'Formato no válido. Formatos disponibles: ' . implode(', ', $pdfService->getAvailableFormats())
                 ], 400);
             }
-            
+
             $fileService = app(FileService::class);
             $download = $fileService->downloadPdf($document);
-            
+
             if (!$download) {
                 return response()->json([
                     'success' => false,
                     'message' => 'PDF no encontrado'
                 ], 404);
             }
-            
+
             return $download;
 
         } catch (\Exception $e) {
