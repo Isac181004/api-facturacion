@@ -232,7 +232,10 @@ class DocumentService
                     $document->codigo_hash = $this->extractHashFromXml($xmlSigned);
                 }
             } else {
-                $document->estado_sunat = 'RECHAZADO';
+                // Un error de red/configuración no equivale a un rechazo de SUNAT.
+                $document->estado_sunat = !empty($result['transport_error'])
+                    ? 'ERROR_ENVIO'
+                    : 'RECHAZADO';
                 
                 // Manejar diferentes tipos de error
                 $errorCode = 'UNKNOWN';
@@ -267,11 +270,27 @@ class DocumentService
             ];
             
         } catch (Exception $e) {
+            Log::error('Error antes o durante el envío SUNAT', [
+                'document_type' => $documentType,
+                'document_id' => $document->id ?? null,
+                'message' => $e->getMessage(),
+            ]);
+
+            if ($document->exists) {
+                $document->forceFill([
+                    'estado_sunat' => 'ERROR_ENVIO',
+                    'respuesta_sunat' => json_encode([
+                        'code' => 'SEND_BILL_EXCEPTION',
+                        'message' => $e->getMessage(),
+                    ]),
+                ])->save();
+            }
+
             return [
                 'success' => false,
                 'document' => $document,
                 'error' => (object)[
-                    'code' => 'EXCEPTION',
+                    'code' => 'SEND_BILL_EXCEPTION',
                     'message' => $e->getMessage()
                 ]
             ];
