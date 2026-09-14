@@ -41,10 +41,19 @@ class Company extends Model
         'activo',
     ];
 
-    protected $casts = [
-        'modo_produccion' => 'boolean',
-        'activo' => 'boolean',
-    ];
+    protected function casts(): array
+    {
+        return [
+            'modo_produccion' => 'boolean',
+            'activo' => 'boolean',
+            'clave_sol' => 'encrypted',
+            'certificado_pem' => 'encrypted',
+            'certificado_password' => 'encrypted',
+            'gre_client_secret_beta' => 'encrypted',
+            'gre_client_secret_produccion' => 'encrypted',
+            'gre_clave_sol' => 'encrypted',
+        ];
+    }
 
     protected $hidden = [
         'clave_sol',
@@ -54,6 +63,11 @@ class Company extends Model
         'gre_client_secret_produccion',
         'gre_clave_sol',
     ];
+
+    public function integrationClients(): HasMany
+    {
+        return $this->hasMany(IntegrationClient::class);
+    }
 
     public function branches(): HasMany
     {
