@@ -45,7 +45,8 @@ class FileService
         $tipoArchivo = $extension === 'zip' ? 'cdr' : $extension;
         
         // Crear estructura: TIPO_COMPROBANTE/TIPO_ARCHIVO/DDMMYYYY/
-        $directory = "{$tipoComprobante}/{$tipoArchivo}/{$dateFolder}";
+        $companyFolder = 'empresas/'.(int) $document->company_id;
+        $directory = "{$companyFolder}/{$tipoComprobante}/{$tipoArchivo}/{$dateFolder}";
         
         // Prefijo según tipo de archivo
         $prefix = '';
@@ -197,7 +198,8 @@ class FileService
         $tipoComprobante = $this->getDocumentTypeName($document);
         $tipoArchivo = $extension === 'zip' ? 'cdr' : $extension;
         
-        $directory = "{$tipoComprobante}/{$tipoArchivo}/{$dateFolder}";
+        $companyFolder = 'empresas/'.(int) $document->company_id;
+        $directory = "{$companyFolder}/{$tipoComprobante}/{$tipoArchivo}/{$dateFolder}";
         
         if (!Storage::disk('public')->exists($directory)) {
             Storage::disk('public')->makeDirectory($directory);
