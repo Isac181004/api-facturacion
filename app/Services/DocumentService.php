@@ -1144,9 +1144,9 @@ class DocumentService
             
             // Crear o buscar destinatario
             if (isset($data['destinatario_id'])) {
-                $destinatario = Client::findOrFail($data['destinatario_id']);
+                $destinatario = Client::where('company_id', $company->id)->findOrFail($data['destinatario_id']);
             } else {
-                $destinatario = $this->getOrCreateClient($data['destinatario']);
+                $destinatario = $this->getOrCreateClient($data['destinatario'], $company->id);
             }
             
             // Obtener siguiente correlativo automático (ignorar correlativo enviado)
@@ -1840,7 +1840,7 @@ class DocumentService
                            ->firstOrFail();
             
             // Crear o buscar el proveedor
-            $proveedor = $this->getOrCreateClient($data['proveedor']);
+            $proveedor = $this->getOrCreateClient($data['proveedor'], $company->id);
             
             // Obtener siguiente correlativo (tipo '20' para retenciones)
             $serie = $data['serie'];
