@@ -21,8 +21,8 @@ class SunatCredentialController extends Controller
         ]);
 
         $pem = file_get_contents($data['certificado']->getRealPath());
-        if (!$pem || !str_contains($pem, 'BEGIN CERTIFICATE')) {
-            return response()->json(['success' => false, 'message' => 'El archivo no contiene un certificado PEM válido.'], 422);
+        if (!$pem || !str_contains($pem, 'BEGIN CERTIFICATE') || !str_contains($pem, 'PRIVATE KEY')) {
+            return response()->json(['success' => false, 'message' => 'El PEM debe contener el certificado y su clave privada.'], 422);
         }
 
         $company->update([
