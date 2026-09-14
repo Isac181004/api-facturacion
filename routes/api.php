@@ -15,6 +15,9 @@ use App\Http\Controllers\Api\ConsultaCpeController;
 use App\Http\Controllers\Api\SetupController;
 use App\Http\Controllers\Api\UbigeoController;
 use App\Http\Controllers\Api\ConsultaDocumentoController;
+use App\Http\Controllers\Api\IntegrationClientController;
+use App\Http\Controllers\Api\SunatCredentialController;
+use App\Http\Controllers\Api\ExternalDocumentController;
 
 // ========================
 // RUTAS PÚBLICAS (SIN AUTENTICACIÓN)
@@ -128,6 +131,15 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::get('/correlatives/document-types', [CorrelativeController::class, 'getDocumentTypes']);
 
     // ========================
+    // ADMINISTRACIÓN SAAS (SOLO SUPER ADMIN)
+    // ========================
+    Route::apiResource('integration-clients', IntegrationClientController::class)
+        ->only(['index', 'store', 'update', 'destroy']);
+    Route::post('/integration-clients/{integrationClient}/rotate', [IntegrationClientController::class, 'rotate']);
+    Route::put('/companies/{company}/sunat-credentials', [SunatCredentialController::class, 'update']);
+    Route::get('/companies/{company}/sunat-diagnostics', [SunatCredentialController::class, 'validateConfiguration']);
+
+    // ========================
     // DOCUMENTOS ELECTRÓNICOS SUNAT
     // ========================
 
@@ -178,4 +190,24 @@ Route::get(
         // Estadísticas de consultas
         Route::get('/estadisticas', [ConsultaCpeController::class, 'estadisticasConsultas']);
     });
+});
+
+
+// API para sistemas externos. La empresa se obtiene exclusivamente de X-API-Key.
+Route::prefix('external/v1')->group(function () {
+    Route::get('/documentos/consultar', [ConsultaDocumentoController::class, 'consultar'])
+        ->middleware('integration:documents.lookup');
+
+    Route::post('/invoices', [ExternalDocumentController::class, 'storeInvoice'])
+        ->middleware('integration:invoices.create');
+    Route::post('/invoices/{id}/send-sunat', [ExternalDocumentController::class, 'sendInvoice'])
+        ->middleware('integration:invoices.send');
+
+    Route::post('/boletas', [ExternalDocumentController::class, 'storeBoleta'])
+        ->middleware('integration:boletas.create');
+    Route::post('/boletas/{id}/send-sunat', [ExternalDocumentController::class, 'sendBoleta'])
+        ->middleware('integration:boletas.send');
+
+    Route::get('/documents/{type}/{id}', [ExternalDocumentController::class, 'show'])
+        ->middleware('integration:documents.read');
 });
