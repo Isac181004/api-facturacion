@@ -346,11 +346,35 @@ trait HasCompanyConfigurations
     {
         $environment = $this->modo_produccion ? 'produccion' : 'beta';
         
-        return $this->getConfig('service_endpoints', $environment, $serviceType, [
-            'endpoint' => '',
-            'wsdl' => '',
-            'timeout' => 30
-        ]);
+        $defaultEndpoint = match ($serviceType) {
+            'facturacion' => $this->modo_produccion
+                ? ($this->endpoint_produccion ?: 'https://e-factura.sunat.gob.pe/ol-ti-itcpfegem/billService')
+                : ($this->endpoint_beta ?: 'https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService'),
+            'guias_remision' => $this->modo_produccion
+                ? 'https://api-cpe.sunat.gob.pe/v1/'
+                : 'https://api-cpe-beta.sunat.gob.pe/v1/',
+            default => '',
+        };
+
+        $defaults = [
+            'endpoint' => $defaultEndpoint,
+            'wsdl' => str_contains($defaultEndpoint, 'billService')
+                ? $defaultEndpoint.'?wsdl'
+                : '',
+            'timeout' => 30,
+        ];
+
+        if ($serviceType === 'guias_remision') {
+            $defaults['api_endpoint'] = $defaultEndpoint;
+        }
+
+        $config = $this->getConfig('service_endpoints', $environment, $serviceType, $defaults);
+
+        // Una configuración antigua vacía no debe anular el endpoint seguro por defecto.
+        return array_replace($defaults, array_filter(
+            (array) $config,
+            static fn ($value) => $value !== null && $value !== ''
+        ));
     }
 
     /**
