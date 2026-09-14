@@ -44,7 +44,7 @@ class GreenterService
     {
         $this->company = $company;
         $this->see = $this->initializeSee();
-        $this->seeApi = $this->initializeSeeApi();
+        $this->seeApi = null;
     }
 
     protected function initializeSee(): See
@@ -58,20 +58,19 @@ class GreenterService
         
         // Configurar certificado cargando desde archivo
         try {
-            $certificadoPath = storage_path('app/public/certificado/certificado.pem');
-            
-            if (!file_exists($certificadoPath)) {
-                throw new Exception("Archivo de certificado no encontrado: " . $certificadoPath);
+            $certificadoContent = $this->company->certificado_pem;
+
+            if (!$certificadoContent) {
+                throw new Exception('La empresa no tiene certificado digital configurado');
             }
-            
-            $certificadoContent = file_get_contents($certificadoPath);
-            
-            if ($certificadoContent === false) {
-                throw new Exception("No se pudo leer el archivo de certificado");
+
+            if (!str_contains($certificadoContent, 'BEGIN CERTIFICATE') ||
+                !str_contains($certificadoContent, 'PRIVATE KEY')) {
+                throw new Exception('El PEM debe incluir certificado y clave privada');
             }
             
             $see->setCertificate($certificadoContent);
-            Log::info("Certificado cargado desde archivo: " . $certificadoPath);
+            Log::info("Certificado SUNAT cargado para empresa", ['company_id' => $this->company->id]);
         } catch (Exception $e) {
             Log::error("Error al configurar certificado: " . $e->getMessage());
             throw new Exception("Error al configurar certificado: " . $e->getMessage());
@@ -534,17 +533,60 @@ class GreenterService
                 'error' => $result->isSuccess() ? null : $result->getError()
             ];
         } catch (Exception $e) {
+            $xml = $this->see->getFactory()->getLastXml();
+
+            Log::error('Fallo de transporte al ejecutar sendBill', [
+                'company_id' => $this->company->id,
+                'environment' => $this->company->modo_produccion ? 'production' : 'beta',
+                'endpoint' => $this->company->getInvoiceEndpoint(),
+                'exception' => get_class($e),
+                'message' => $e->getMessage(),
+                'xml_generated' => $xml !== null,
+            ]);
+
             return [
                 'success' => false,
-                'xml' => null,
+                'xml' => $xml,
                 'cdr_response' => null,
                 'cdr_zip' => null,
+                'transport_error' => true,
                 'error' => (object)[
-                    'code' => 'EXCEPTION',
+                    'code' => 'SEND_BILL_TRANSPORT_ERROR',
                     'message' => $e->getMessage()
                 ]
             ];
         }
+    }
+
+    public function diagnose(): array
+    {
+        $pem = (string) $this->company->certificado_pem;
+        $certificate = openssl_x509_read($pem);
+        $details = $certificate ? openssl_x509_parse($certificate) : false;
+        $certificateRuc = null;
+
+        if (is_array($details)) {
+            $subject = implode(' ', array_filter((array) ($details['subject'] ?? [])));
+            if (preg_match('/\\b(10|15|17|20)\\d{9}\\b/', $subject, $match)) {
+                $certificateRuc = $match[0];
+            }
+        }
+
+        return [
+            'company_id' => $this->company->id,
+            'ruc' => $this->company->ruc,
+            'environment' => $this->company->modo_produccion ? 'production' : 'beta',
+            'endpoint' => $this->company->getInvoiceEndpoint(),
+            'certificate_valid' => (bool) $certificate,
+            'private_key_present' => str_contains($pem, 'PRIVATE KEY'),
+            'certificate_ruc' => $certificateRuc,
+            'certificate_matches_ruc' => $certificateRuc === null || $certificateRuc === $this->company->ruc,
+            'certificate_expires_at' => isset($details['validTo_time_t'])
+                ? date(DATE_ATOM, $details['validTo_time_t'])
+                : null,
+            'sol_user_configured' => filled($this->company->usuario_sol),
+            'sol_password_configured' => filled($this->company->clave_sol),
+        ];
     }
 
     public function getXmlSigned($document): ?string
@@ -1267,6 +1309,10 @@ class GreenterService
 
     protected function getSeeApi()
     {
+        if ($this->seeApi === null) {
+            $this->seeApi = $this->initializeSeeApi();
+        }
+
         Log::info("Retornando seeApi", [
             'seeApi_exists' => $this->seeApi !== null,
             'seeApi_class' => $this->seeApi ? get_class($this->seeApi) : 'NULL'
