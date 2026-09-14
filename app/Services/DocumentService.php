@@ -41,7 +41,7 @@ class DocumentService
                            ->firstOrFail();
             
             // Crear o buscar cliente
-            $client = $this->getOrCreateClient($data['client']);
+            $client = $this->getOrCreateClient($data['client'], $company->id);
             
             // Obtener siguiente correlativo
             $serie = $data['serie'];
@@ -123,7 +123,7 @@ class DocumentService
                            ->firstOrFail();
             
             // Crear o buscar cliente
-            $client = $this->getOrCreateClient($data['client']);
+            $client = $this->getOrCreateClient($data['client'], $company->id);
             
             // Obtener siguiente correlativo
             $serie = $data['serie'];
@@ -297,9 +297,10 @@ class DocumentService
         }
     }
 
-    protected function getOrCreateClient(array $clientData): Client
+    protected function getOrCreateClient(array $clientData, int $companyId): Client
     {
         return Client::firstOrCreate([
+            'company_id' => $companyId,
             'tipo_documento' => $clientData['tipo_documento'],
             'numero_documento' => $clientData['numero_documento'],
         ], [
@@ -906,7 +907,7 @@ class DocumentService
                            ->firstOrFail();
             
             // Crear o buscar cliente
-            $client = $this->getOrCreateClient($data['client']);
+            $client = $this->getOrCreateClient($data['client'], $company->id);
             
             // Obtener siguiente correlativo
             $serie = $data['serie'];
@@ -1026,7 +1027,7 @@ class DocumentService
                            ->firstOrFail();
             
             // Crear o buscar cliente
-            $client = $this->getOrCreateClient($data['client']);
+            $client = $this->getOrCreateClient($data['client'], $company->id);
             
             // Obtener siguiente correlativo
             $serie = $data['serie'];
