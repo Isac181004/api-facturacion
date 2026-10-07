@@ -14,6 +14,7 @@ use App\Models\DispatchGuide;
 use App\Models\Retention;
 use App\Models\VoidedDocument;
 use App\Services\GreenterService;
+use App\Services\CompanyCertificateService;
 use App\Services\FileService;
 use App\Services\PdfService;
 use Illuminate\Support\Facades\DB;
@@ -41,7 +42,7 @@ class DocumentService
                            ->firstOrFail();
             
             // Crear o buscar cliente
-            $client = $this->getOrCreateClient($data['client']);
+            $client = $this->getOrCreateClient($data['client'], (int) $company->id);
             
             // Obtener siguiente correlativo
             $serie = $data['serie'];
@@ -123,7 +124,7 @@ class DocumentService
                            ->firstOrFail();
             
             // Crear o buscar cliente
-            $client = $this->getOrCreateClient($data['client']);
+            $client = $this->getOrCreateClient($data['client'], (int) $company->id);
             
             // Obtener siguiente correlativo
             $serie = $data['serie'];
@@ -278,12 +279,14 @@ class DocumentService
         }
     }
 
-    protected function getOrCreateClient(array $clientData): Client
+    protected function getOrCreateClient(array $clientData, int $companyId): Client
     {
         return Client::firstOrCreate([
+            'company_id' => $companyId,
             'tipo_documento' => $clientData['tipo_documento'],
             'numero_documento' => $clientData['numero_documento'],
         ], [
+            'company_id' => $companyId,
             'razon_social' => $clientData['razon_social'],
             'nombre_comercial' => $clientData['nombre_comercial'] ?? null,
             'direccion' => $clientData['direccion'] ?? null,
@@ -887,7 +890,7 @@ class DocumentService
                            ->firstOrFail();
             
             // Crear o buscar cliente
-            $client = $this->getOrCreateClient($data['client']);
+            $client = $this->getOrCreateClient($data['client'], (int) $company->id);
             
             // Obtener siguiente correlativo
             $serie = $data['serie'];
@@ -1007,7 +1010,7 @@ class DocumentService
                            ->firstOrFail();
             
             // Crear o buscar cliente
-            $client = $this->getOrCreateClient($data['client']);
+            $client = $this->getOrCreateClient($data['client'], (int) $company->id);
             
             // Obtener siguiente correlativo
             $serie = $data['serie'];
@@ -1125,8 +1128,11 @@ class DocumentService
             // Crear o buscar destinatario
             if (isset($data['destinatario_id'])) {
                 $destinatario = Client::findOrFail($data['destinatario_id']);
+                if ((int) $destinatario->company_id !== (int) $company->id) {
+                    throw new Exception('El destinatario no pertenece a la empresa de la guía.');
+                }
             } else {
-                $destinatario = $this->getOrCreateClient($data['destinatario']);
+                $destinatario = $this->getOrCreateClient($data['destinatario'], (int) $company->id);
             }
             
             // Obtener siguiente correlativo automático (ignorar correlativo enviado)
@@ -1225,10 +1231,15 @@ class DocumentService
                 'client_id' => $guide->client_id,
             ]);
             
-            // Cargar destinatario directamente
+            $businessCompany = $guide->company;
+            if (!$businessCompany || (int) $guide->company_id !== (int) $businessCompany->id) {
+                throw new Exception('No se pudo resolver la empresa propietaria de la guía.');
+            }
+
+            // Cargar destinatario directamente y asegurar que sea de la misma empresa.
             $destinatario = \App\Models\Client::find($guide->client_id);
-            if (!$destinatario) {
-                throw new Exception("Destinatario no encontrado: ID {$guide->client_id}");
+            if (!$destinatario || (int) $destinatario->company_id !== (int) $businessCompany->id) {
+                throw new Exception("Destinatario no encontrado para esta empresa: ID {$guide->client_id}");
             }
             
             Log::info("Destinatario encontrado:", [
@@ -1247,10 +1258,10 @@ class DocumentService
                 ->setFechaEmision($guide->fecha_emision);
             
             // Empresa (usar datos reales de la guía)
-            $company = new \Greenter\Model\Company\Company();
-            $company->setRuc($guide->company->ruc)
-                ->setRazonSocial($guide->company->razon_social);
-            $despatch->setCompany($company);
+            $greenterCompany = new \Greenter\Model\Company\Company();
+            $greenterCompany->setRuc($businessCompany->ruc)
+                ->setRazonSocial($businessCompany->razon_social);
+            $despatch->setCompany($greenterCompany);
             
             // Cliente/Destinatario
             $client = new \Greenter\Model\Client\Client();
@@ -1432,20 +1443,25 @@ class DocumentService
                 $despatch->setAddDocs($relDocs);
             }
             
-            // USAR LA CONFIGURACIÓN DE LA CLASE UTIL DE GREENTER
-            $api = new \Greenter\Api([
-                'auth' => 'https://gre-test.nubefact.com/v1',
-                'cpe' => 'https://gre-test.nubefact.com/v1',
-            ]);
-            
-            // Configurar certificado
-            $certificadoContent = file_get_contents(storage_path('app/public/certificado/certificado.pem'));
-            if ($certificadoContent === false) {
-                throw new Exception("No se pudo cargar el certificado");
+            // Preserve the established Beta endpoint, but resolve credentials, PEM and production endpoint per company.
+            $guideConfig = $businessCompany->getSunatServiceConfig('guias_remision');
+            $endpoint = $businessCompany->modo_produccion
+                ? ($guideConfig['api_endpoint'] ?? $businessCompany->getGuideApiEndpoint())
+                : ($guideConfig['endpoint'] ?? $businessCompany->getGuideEndpoint());
+            if (!$endpoint && !$businessCompany->modo_produccion) {
+                $endpoint = 'https://gre-test.nubefact.com/v1';
             }
-            
-            // Obtener credenciales GRE de la configuración de la empresa
-            $company = $guide->company;
+            if (!$endpoint) {
+                throw new Exception('No hay un endpoint GRE configurado para el ambiente autorizado de esta empresa.');
+            }
+
+            $api = new \Greenter\Api([
+                'auth' => $endpoint,
+                'cpe' => $endpoint,
+            ]);
+
+            $certificadoContent = app(CompanyCertificateService::class)->contents($businessCompany);
+            $company = $businessCompany;
             
             if (!$company->hasGreCredentials()) {
                 throw new Exception("Las credenciales GRE no están configuradas para la empresa: {$company->razon_social}");
@@ -1462,7 +1478,7 @@ class DocumentService
                 'modo_produccion' => $company->modo_produccion,
                 'client_id' => $clientId ? '***' . substr($clientId, -4) : 'No configurado',
                 'ruc_proveedor' => $rucProveedor,
-                'usuario_sol' => $usuarioSol,
+                'usuario_sol' => $usuarioSol ? '••••' : 'No configurado',
             ]);
             
             $api->setBuilderOptions([
@@ -1567,26 +1583,37 @@ class DocumentService
                 'ticket' => $guide->ticket
             ]);
             
-            // USAR CONFIGURACIÓN DIRECTA COMO EN ENVÍO
-            $api = new \Greenter\Api([
-                'auth' => 'https://gre-test.nubefact.com/v1',
-                'cpe' => 'https://gre-test.nubefact.com/v1',
-            ]);
-            
-            // Configurar certificado
-            $certificadoContent = file_get_contents(storage_path('app/public/certificado/certificado.pem'));
-            if ($certificadoContent === false) {
-                throw new Exception("No se pudo cargar el certificado");
+            // Use only this guide owner's configured endpoint and GRE credentials.
+            $company = $guide->company;
+            if (!$company || !$company->hasGreCredentials()) {
+                throw new Exception('Las credenciales GRE no están configuradas para esta empresa.');
             }
-            
+
+            $guideConfig = $company->getSunatServiceConfig('guias_remision');
+            $endpoint = $company->modo_produccion
+                ? ($guideConfig['api_endpoint'] ?? $company->getGuideApiEndpoint())
+                : ($guideConfig['endpoint'] ?? $company->getGuideEndpoint());
+            if (!$endpoint && !$company->modo_produccion) {
+                $endpoint = 'https://gre-test.nubefact.com/v1';
+            }
+            if (!$endpoint) {
+                throw new Exception('No hay un endpoint GRE configurado para el ambiente autorizado de esta empresa.');
+            }
+
+            $api = new \Greenter\Api([
+                'auth' => $endpoint,
+                'cpe' => $endpoint,
+            ]);
+            $certificadoContent = app(CompanyCertificateService::class)->contents($company);
+
             $api->setBuilderOptions([
                 'strict_variables' => true,
                 'optimizations' => 0,
                 'debug' => true,
                 'cache' => false,
             ])
-            ->setApiCredentials('test-85e5b0ae-255c-4891-a595-0b98c65c9854', 'test-Hty/M6QshYvPgItX2P0+Kw==')
-            ->setClaveSOL('20161515648', 'MODDATOS', 'MODDATOS')
+            ->setApiCredentials($company->getGreClientId(), $company->getGreClientSecret())
+            ->setClaveSOL($company->getGreRucProveedor(), $company->getGreUsuarioSol(), $company->getGreClaveSol())
             ->setCertificate($certificadoContent);
             
             Log::info("Consultando estado en SUNAT...");
@@ -1820,7 +1847,7 @@ class DocumentService
                            ->firstOrFail();
             
             // Crear o buscar el proveedor
-            $proveedor = $this->getOrCreateClient($data['proveedor']);
+            $proveedor = $this->getOrCreateClient($data['proveedor'], (int) $company->id);
             
             // Obtener siguiente correlativo (tipo '20' para retenciones)
             $serie = $data['serie'];

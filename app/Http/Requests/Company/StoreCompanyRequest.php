@@ -8,8 +8,7 @@ class StoreCompanyRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        // Si quieres, puedes poner lógica para autorizar según el usuario.
-        return true;
+        return (bool) $this->user()?->hasRole('super_admin');
     }
 
     public function rules(): array
@@ -28,7 +27,7 @@ class StoreCompanyRequest extends FormRequest
             'web' => 'nullable|url|max:255',
             'usuario_sol' => 'required|string|max:50',
             'clave_sol' => 'required|string|max:100',
-            'certificado_pem' => 'nullable|file|mimes:pem,crt,cer,txt|max:2048',
+            'certificado_pem' => 'nullable|file|extensions:pem|max:2048',
             'certificado_password' => 'nullable|string|max:100',
             'endpoint_beta' => 'nullable|url|max:255',
             'endpoint_produccion' => 'nullable|url|max:255',
@@ -48,7 +47,7 @@ class StoreCompanyRequest extends FormRequest
             'ruc.size' => 'El RUC debe tener exactamente 11 dígitos',
             'ruc.unique' => 'El RUC ya está registrado',
             'email.email' => 'El correo debe tener un formato válido',
-            'certificado_pem.mimes' => 'El certificado debe ser un archivo válido (.pem, .crt, .cer, .txt)',
+            'certificado_pem.extensions' => 'El certificado debe tener extensión .pem.',
             'logo_path.mimes' => 'El logo debe estar en formato PNG o JPG',
         ];
     }

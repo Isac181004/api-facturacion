@@ -640,13 +640,13 @@ trait HasCompanyConfigurations
                 'environment' => 'beta',
                 'service_type' => 'guias_remision',
                 'config_data' => [
-                    'client_id' => 'test-85e5b0ae-255c-4891-a595-0b98c65c9854',
-                    'client_secret' => 'test-Hty/M6QshYvPgItX2P0+Kw==',
-                    'ruc_proveedor' => '20161515648',
-                    'usuario_sol' => 'MODDATOS',
-                    'clave_sol' => 'MODDATOS',
+                    'client_id' => null,
+                    'client_secret' => null,
+                    'ruc_proveedor' => null,
+                    'usuario_sol' => null,
+                    'clave_sol' => null,
                 ],
-                'description' => 'Credenciales por defecto para GRE en ambiente beta'
+                'description' => 'Configura credenciales GRE propias para esta empresa en ambiente Beta.'
             ],
 
             // Configuraciones de impuestos

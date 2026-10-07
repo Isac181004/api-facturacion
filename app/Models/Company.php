@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use App\Traits\HasCompanyConfigurations;
+use App\Traits\ScopesToCompany;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Company extends Model
 {
-    use HasFactory, HasCompanyConfigurations;
+    use HasFactory, HasCompanyConfigurations, ScopesToCompany;
 
     protected $fillable = [
         'ruc',
@@ -50,9 +51,13 @@ class Company extends Model
         'clave_sol',
         'certificado_pem',
         'certificado_password',
+        'gre_client_id_beta',
         'gre_client_secret_beta',
+        'gre_client_id_produccion',
         'gre_client_secret_produccion',
         'gre_clave_sol',
+        'api_sunat_client_id',
+        'api_sunat_client_secret',
     ];
 
     public function branches(): HasMany
@@ -63,6 +68,19 @@ class Company extends Model
     public function configurations(): HasMany
     {
         return $this->hasMany(CompanyConfiguration::class);
+    }
+
+    public function apiKeys(): HasMany
+    {
+        return $this->hasMany(CompanyApiKey::class);
+    }
+
+    public function revokeApiKeysForEnvironment(string $environment): void
+    {
+        $this->apiKeys()
+            ->where('environment', $environment)
+            ->where('active', true)
+            ->update(['active' => false, 'revoked_at' => now()]);
     }
 
     public function activeConfigurations(): HasMany

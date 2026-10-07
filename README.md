@@ -39,7 +39,7 @@ Sistema completo de facturación electrónica para SUNAT Perú desarrollado con 
 - PHP 8.2 o superior
 - Composer
 - MySQL 8.0+ o PostgreSQL
-- Certificado digital SUNAT (.pfx)
+- Certificado digital SUNAT (.pfx convertible a `.pem`)
 
 ### Pasos de Instalación
 
@@ -75,9 +75,10 @@ DB_PASSWORD=tu_password
 php artisan migrate
 ```
 
-6. **Configurar certificados SUNAT**
-- Colocar certificado .pfx en `storage/certificates/`
-- Configurar rutas en el archivo .env
+6. **Configurar la empresa y el certificado SUNAT**
+- Crea el primer superadministrador con un `POST` a `/api/auth/initialize` (`name`, `email` y `password`).
+- Ingresa al portal web en `/login`; crea empresas mediante la API autenticada de administración y gestiona su configuración desde el portal.
+- Cada empresa carga su propio archivo `.pem` desde Configuración SUNAT. El archivo se almacena en el disco privado `storage/app/private/sunat/certificates/companies/{company_id}/`; no requiere una ruta en `.env` ni `storage:link`.
 
 ### Conversión de Certificado .pfx a .pem
 
@@ -132,6 +133,44 @@ En el directorio `ejemplos-postman/` encontrarás colecciones completas listas p
 - Guías de remisión
 - Consultas CPE
 - Configuraciones avanzadas
+
+## 🏢 Multiempresa, portal y API Keys
+
+La capa multiempresa mantiene la integración SUNAT existente y agrega aislamiento por empresa para empresas, sucursales, clientes, documentos, correlativos y configuraciones. Los usuarios de empresa quedan vinculados a un único `company_id`; las claves de integración resuelven el tenant desde la credencial autenticada, no desde un identificador enviado por el consumidor.
+
+> Antes de aplicar las migraciones en una base con datos reales, realiza un respaldo y valida primero en staging la migración de clientes históricos: redistribuye asociaciones de facturas/boletas por empresa y reemplaza el índice único global por uno compuesto. La migración de limpieza elimina credenciales GRE compartidas de demostración y su rollback es intencionalmente irreversible.
+
+### Certificado y configuración SUNAT
+
+- Abre `/login` y entra con una cuenta habilitada.
+- En el área de empresa, configura usuario/clave SOL y carga un `.pem` que contenga certificado X.509 y clave privada.
+- El archivo se guarda de forma privada bajo `storage/app/private/sunat/certificates/companies/{company_id}/certificate.pem`.
+- Una instalación antigua que aún apunte al PEM público compartido sólo puede seguir usándolo si una única empresa lo referencia; al cargar PEM privados para todas las empresas que lo referencian, el archivo público histórico se elimina.
+- Los XML, CDR y PDF nuevos también se guardan en almacenamiento privado por empresa y se entregan sólo por rutas autenticadas.
+- El portal no vuelve a mostrar contraseñas ni secretos guardados.
+- Sólo el superadministrador puede autorizar producción; se requiere usuario SOL, clave SOL y PEM válido. El modo Beta sigue siendo el predeterminado.
+- En instalaciones existentes, después del respaldo y antes de producción, ejecuta `php artisan sunat:privatize-document-files`. El comando migra archivos históricos que sólo estén referenciados por una empresa y falla con un informe si encuentra rutas compartidas o archivos faltantes; esos casos requieren revisión manual antes de borrar o exponer archivos antiguos.
+
+### Crear y usar una API Key
+
+1. En Configuración SUNAT, crea una API Key con nombre descriptivo. El secreto se muestra una única vez: guárdalo en un gestor de secretos.
+2. Las claves tienen ambiente `test` o `live`; el ambiente debe coincidir con el modo autorizado de la empresa. Emitir `live` requiere autorización de superadministrador.
+3. Envía la clave como Bearer token. El consumidor no necesita enviar `company_id`:
+
+```bash
+curl -H 'Authorization: Bearer mc_test_<identificador>_<secreto>' \
+  https://tu-dominio/api/v1/external/clients
+```
+
+Rutas de empresa disponibles bajo `/api/v1/external`:
+
+- `GET /branches`, `GET /branches/{branch}`
+- `GET|POST /clients`, `GET /clients/{client}`, `POST /clients/search-by-document`
+- `GET|POST /invoices`, `GET /invoices/{id}`, `POST /invoices/{id}/send-sunat`
+- `GET|POST /boletas`, `GET /boletas/{id}`, `POST /boletas/{id}/send-sunat`
+- Descargas XML/CDR/PDF y generación PDF para facturas y boletas.
+
+La API Key define la empresa y se inyecta internamente el `company_id` para compatibilidad con los validadores existentes. Si el consumidor envía un `company_id` distinto, la petición se rechaza. Las claves se almacenan como hash, pueden revocarse desde el portal y registran contador/último uso. Las rutas originales `/api/v1/...` continúan disponibles para clientes autenticados con Sanctum y también aplican aislamiento tenant.
 
 ## ⚖️ Licencia y Uso
 
