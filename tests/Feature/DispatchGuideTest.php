@@ -10,9 +10,10 @@ uses(RefreshDatabase::class);
 
 test('puede crear una guía de remisión básica con transporte privado', function () {
     // Preparar datos de prueba
-    $company = Company::factory()->create();
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
     $branch = Branch::factory()->create(['company_id' => $company->id]);
-    $client = Client::factory()->create();
+    $client = Client::factory()->create(['company_id' => $company->id]);
 
     $data = [
         'company_id' => $company->id,
@@ -63,7 +64,7 @@ test('puede crear una guía de remisión básica con transporte privado', functi
         'usuario_creacion' => 'TEST_USER'
     ];
 
-    $response = $this->postJson('/api/v1/dispatch-guides', $data);
+    $response = $this->postJson('/api/v1/external/dispatch-guides', $data);
 
     $response->assertStatus(201)
             ->assertJson([
@@ -83,9 +84,10 @@ test('puede crear una guía de remisión básica con transporte privado', functi
 });
 
 test('puede crear una guía de remisión con transporte público', function () {
-    $company = Company::factory()->create();
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
     $branch = Branch::factory()->create(['company_id' => $company->id]);
-    $client = Client::factory()->create();
+    $client = Client::factory()->create(['company_id' => $company->id]);
 
     $data = [
         'company_id' => $company->id,
@@ -130,7 +132,7 @@ test('puede crear una guía de remisión con transporte público', function () {
         ]
     ];
 
-    $response = $this->postJson('/api/v1/dispatch-guides', $data);
+    $response = $this->postJson('/api/v1/external/dispatch-guides', $data);
 
     $response->assertStatus(201)
             ->assertJson([
@@ -145,9 +147,10 @@ test('puede crear una guía de remisión con transporte público', function () {
 });
 
 test('puede crear guía de remisión para traslado entre establecimientos', function () {
-    $company = Company::factory()->create();
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
     $branch = Branch::factory()->create(['company_id' => $company->id]);
-    $client = Client::factory()->create();
+    $client = Client::factory()->create(['company_id' => $company->id]);
 
     $data = [
         'company_id' => $company->id,
@@ -190,7 +193,7 @@ test('puede crear guía de remisión para traslado entre establecimientos', func
         ]
     ];
 
-    $response = $this->postJson('/api/v1/dispatch-guides', $data);
+    $response = $this->postJson('/api/v1/external/dispatch-guides', $data);
 
     $response->assertStatus(201);
 
@@ -200,9 +203,10 @@ test('puede crear guía de remisión para traslado entre establecimientos', func
 });
 
 test('puede crear guía con vehículos secundarios', function () {
-    $company = Company::factory()->create();
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
     $branch = Branch::factory()->create(['company_id' => $company->id]);
-    $client = Client::factory()->create();
+    $client = Client::factory()->create(['company_id' => $company->id]);
 
     $data = [
         'company_id' => $company->id,
@@ -248,7 +252,7 @@ test('puede crear guía con vehículos secundarios', function () {
         ]
     ];
 
-    $response = $this->postJson('/api/v1/dispatch-guides', $data);
+    $response = $this->postJson('/api/v1/external/dispatch-guides', $data);
 
     $response->assertStatus(201);
 
@@ -259,9 +263,10 @@ test('puede crear guía con vehículos secundarios', function () {
 });
 
 test('valida campos requeridos para transporte privado', function () {
-    $company = Company::factory()->create();
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
     $branch = Branch::factory()->create(['company_id' => $company->id]);
-    $client = Client::factory()->create();
+    $client = Client::factory()->create(['company_id' => $company->id]);
 
     $data = [
         'company_id' => $company->id,
@@ -290,7 +295,7 @@ test('valida campos requeridos para transporte privado', function () {
         ]
     ];
 
-    $response = $this->postJson('/api/v1/dispatch-guides', $data);
+    $response = $this->postJson('/api/v1/external/dispatch-guides', $data);
 
     $response->assertStatus(422)
             ->assertJsonValidationErrors([
@@ -303,9 +308,10 @@ test('valida campos requeridos para transporte privado', function () {
 });
 
 test('valida campos requeridos para transporte público', function () {
-    $company = Company::factory()->create();
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
     $branch = Branch::factory()->create(['company_id' => $company->id]);
-    $client = Client::factory()->create();
+    $client = Client::factory()->create(['company_id' => $company->id]);
 
     $data = [
         'company_id' => $company->id,
@@ -334,7 +340,7 @@ test('valida campos requeridos para transporte público', function () {
         ]
     ];
 
-    $response = $this->postJson('/api/v1/dispatch-guides', $data);
+    $response = $this->postJson('/api/v1/external/dispatch-guides', $data);
 
     $response->assertStatus(422)
             ->assertJsonValidationErrors([
@@ -345,15 +351,18 @@ test('valida campos requeridos para transporte público', function () {
 });
 
 test('puede generar PDF para una guía de remisión', function () {
-    $company = Company::factory()->create();
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
     $branch = Branch::factory()->create(['company_id' => $company->id]);
     
+    $destinatario = Client::factory()->create(['company_id' => $company->id]);
     $dispatchGuide = DispatchGuide::factory()->create([
         'company_id' => $company->id,
         'branch_id' => $branch->id,
+        'client_id' => $destinatario->id,
     ]);
 
-    $response = $this->postJson("/api/v1/dispatch-guides/{$dispatchGuide->id}/generate-pdf");
+    $response = $this->postJson("/api/v1/external/dispatch-guides/{$dispatchGuide->id}/generate-pdf");
 
     $response->assertStatus(200)
             ->assertJson([
@@ -386,7 +395,10 @@ test('puede generar PDF para una guía de remisión', function () {
 });
 
 test('puede obtener el catálogo de motivos de traslado', function () {
-    $response = $this->getJson('/api/v1/dispatch-guides/catalogs/transfer-reasons');
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
+
+    $response = $this->getJson('/api/v1/external/dispatch-guides/catalogs/transfer-reasons');
 
     $response->assertStatus(200)
             ->assertJson([
@@ -412,7 +424,10 @@ test('puede obtener el catálogo de motivos de traslado', function () {
 });
 
 test('puede obtener el catálogo de modalidades de transporte', function () {
-    $response = $this->getJson('/api/v1/dispatch-guides/catalogs/transport-modes');
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
+
+    $response = $this->getJson('/api/v1/external/dispatch-guides/catalogs/transport-modes');
 
     $response->assertStatus(200)
             ->assertJson([
@@ -433,7 +448,8 @@ test('puede obtener el catálogo de modalidades de transporte', function () {
 });
 
 test('puede listar guías de remisión con filtros', function () {
-    $company = Company::factory()->create();
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
     $branch = Branch::factory()->create(['company_id' => $company->id]);
     
     // Crear algunas guías de remisión
@@ -452,7 +468,7 @@ test('puede listar guías de remisión con filtros', function () {
     ]);
 
     // Filtrar por estado
-    $response = $this->getJson("/api/v1/dispatch-guides?company_id={$company->id}&estado_sunat=PENDIENTE");
+    $response = $this->getJson("/api/v1/external/dispatch-guides?company_id={$company->id}&estado_sunat=PENDIENTE");
 
     $response->assertStatus(200)
             ->assertJson([
@@ -464,7 +480,7 @@ test('puede listar guías de remisión con filtros', function () {
     expect(count($data))->toBe(3);
 
     // Filtrar por modalidad
-    $response2 = $this->getJson("/api/v1/dispatch-guides?company_id={$company->id}&mod_traslado=01");
+    $response2 = $this->getJson("/api/v1/external/dispatch-guides?company_id={$company->id}&mod_traslado=01");
 
     $data2 = $response2->json('data.data');
     expect(count($data2))->toBe(2);

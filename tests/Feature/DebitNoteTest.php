@@ -10,7 +10,8 @@ uses(RefreshDatabase::class);
 
 test('puede crear una nota de débito básica', function () {
     // Preparar datos de prueba
-    $company = Company::factory()->create();
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
     $branch = Branch::factory()->create(['company_id' => $company->id]);
     $client = Client::factory()->create();
 
@@ -42,7 +43,7 @@ test('puede crear una nota de débito básica', function () {
         ]
     ];
 
-    $response = $this->postJson('/api/v1/debit-notes', $data);
+    $response = $this->postJson('/api/v1/external/debit-notes', $data);
 
     $response->assertStatus(201)
             ->assertJson([
@@ -59,7 +60,8 @@ test('puede crear una nota de débito básica', function () {
 });
 
 test('puede crear una nota de débito por intereses por mora', function () {
-    $company = Company::factory()->create();
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
     $branch = Branch::factory()->create(['company_id' => $company->id]);
     $client = Client::factory()->create();
 
@@ -91,7 +93,7 @@ test('puede crear una nota de débito por intereses por mora', function () {
         ]
     ];
 
-    $response = $this->postJson('/api/v1/debit-notes', $data);
+    $response = $this->postJson('/api/v1/external/debit-notes', $data);
 
     $response->assertStatus(201)
             ->assertJson([
@@ -105,7 +107,8 @@ test('puede crear una nota de débito por intereses por mora', function () {
 });
 
 test('puede crear una nota de débito para boleta', function () {
-    $company = Company::factory()->create();
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
     $branch = Branch::factory()->create(['company_id' => $company->id]);
 
     $data = [
@@ -136,7 +139,7 @@ test('puede crear una nota de débito para boleta', function () {
         ]
     ];
 
-    $response = $this->postJson('/api/v1/debit-notes', $data);
+    $response = $this->postJson('/api/v1/external/debit-notes', $data);
 
     $response->assertStatus(201);
 
@@ -147,7 +150,8 @@ test('puede crear una nota de débito para boleta', function () {
 });
 
 test('valida motivos correctos de nota de débito', function () {
-    $company = Company::factory()->create();
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
     $branch = Branch::factory()->create(['company_id' => $company->id]);
 
     $data = [
@@ -178,14 +182,17 @@ test('valida motivos correctos de nota de débito', function () {
         ]
     ];
 
-    $response = $this->postJson('/api/v1/debit-notes', $data);
+    $response = $this->postJson('/api/v1/external/debit-notes', $data);
 
     $response->assertStatus(422)
             ->assertJsonValidationErrors('cod_motivo');
 });
 
 test('puede obtener el catálogo de motivos', function () {
-    $response = $this->getJson('/api/v1/debit-notes/catalogs/motivos');
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
+
+    $response = $this->getJson('/api/v1/external/debit-notes/catalogs/motivos');
 
     $response->assertStatus(200)
             ->assertJson([
@@ -207,7 +214,8 @@ test('puede obtener el catálogo de motivos', function () {
 });
 
 test('puede listar notas de débito con filtros', function () {
-    $company = Company::factory()->create();
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
     $branch = Branch::factory()->create(['company_id' => $company->id]);
     
     // Crear algunas notas de débito
@@ -223,7 +231,7 @@ test('puede listar notas de débito con filtros', function () {
         'estado_sunat' => 'ACEPTADO'
     ]);
 
-    $response = $this->getJson("/api/v1/debit-notes?company_id={$company->id}&estado_sunat=PENDIENTE");
+    $response = $this->getJson("/api/v1/external/debit-notes?company_id={$company->id}&estado_sunat=PENDIENTE");
 
     $response->assertStatus(200)
             ->assertJson([
@@ -236,15 +244,18 @@ test('puede listar notas de débito con filtros', function () {
 });
 
 test('puede generar PDF para una nota de débito', function () {
-    $company = Company::factory()->create();
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
     $branch = Branch::factory()->create(['company_id' => $company->id]);
-    
+    $client = Client::factory()->create(['company_id' => $company->id]);
+
     $debitNote = DebitNote::factory()->create([
         'company_id' => $company->id,
         'branch_id' => $branch->id,
+        'client_id' => $client->id,
     ]);
 
-    $response = $this->postJson("/api/v1/debit-notes/{$debitNote->id}/generate-pdf");
+    $response = $this->postJson("/api/v1/external/debit-notes/{$debitNote->id}/generate-pdf");
 
     $response->assertStatus(200)
             ->assertJson([

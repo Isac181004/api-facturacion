@@ -7,6 +7,12 @@ use App\Http\Controllers\Api\BoletaController;
 use App\Http\Controllers\Api\PdfController;
 use App\Http\Controllers\Api\CompanyConfigController;
 use App\Http\Controllers\Api\CompanyController;
+use App\Http\Controllers\Api\CreditNoteController;
+use App\Http\Controllers\Api\DebitNoteController;
+use App\Http\Controllers\Api\DispatchGuideController;
+use App\Http\Controllers\Api\CompanyApiKeyController;
+use App\Http\Middleware\AuthenticateCompanyApiKey;
+use App\Http\Middleware\ResolveTenantContext;
 use App\Http\Controllers\Api\BranchController;
 use App\Http\Controllers\Api\ClientController;
 use App\Http\Controllers\Api\CorrelativeController;
@@ -25,8 +31,6 @@ Route::get('/system/info', [AuthController::class, 'systemInfo']);
 
 // Setup del sistema
 Route::prefix('setup')->group(function () {
-    Route::post('/migrate', [SetupController::class, 'migrate']);
-    Route::post('/seed', [SetupController::class, 'seed']);
     Route::get('/status', [SetupController::class, 'status']);
 });
 
@@ -40,7 +44,7 @@ Route::post('/auth/login', [AuthController::class, 'login']);
 // ========================
 // RUTAS PROTEGIDAS (CON AUTENTICACIÓN)
 // ========================
-Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
+Route::prefix('v1')->middleware(['auth:sanctum', ResolveTenantContext::class])->group(function () {
 
     // ========================
     // AUTENTICACIÓN Y USUARIO
@@ -58,6 +62,8 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     // SETUP AVANZADO
     // ========================
     Route::prefix('setup')->group(function () {
+        Route::post('/migrate', [SetupController::class, 'migrate']);
+        Route::post('/seed', [SetupController::class, 'seed']);
         Route::post('/complete', [SetupController::class, 'setup']);
         Route::post('/configure-sunat', [SetupController::class, 'configureSunat']);
     });
@@ -81,6 +87,9 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
     Route::apiResource('companies', CompanyController::class);
     Route::post('/companies/{company}/activate', [CompanyController::class, 'activate']);
     Route::post('/companies/{company}/toggle-production', [CompanyController::class, 'toggleProductionMode']);
+    Route::get('/companies/{company}/api-keys', [CompanyApiKeyController::class, 'index']);
+    Route::post('/companies/{company}/api-keys', [CompanyApiKeyController::class, 'store']);
+    Route::delete('/companies/{company}/api-keys/{apiKey}', [CompanyApiKeyController::class, 'destroy']);
 
     // Configuraciones de empresas
     Route::prefix('companies/{company_id}/config')->group(function () {
@@ -159,6 +168,47 @@ Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
         Route::get('/{id}/download-pdf', [BoletaController::class, 'downloadPdf']);
         Route::post('/{id}/generate-pdf', [BoletaController::class, 'generatePdf']);
     });
+    // Notas de crédito (protegidas con Sanctum y contexto de empresa)
+    Route::prefix('credit-notes')->group(function () {
+        Route::get('/catalogs/motivos', [CreditNoteController::class, 'motives']);
+        Route::get('/', [CreditNoteController::class, 'index']);
+        Route::post('/', [CreditNoteController::class, 'store']);
+        Route::get('/{id}', [CreditNoteController::class, 'show'])->whereNumber('id');
+        Route::post('/{id}/send-sunat', [CreditNoteController::class, 'sendToSunat'])->whereNumber('id');
+        Route::post('/{id}/generate-pdf', [CreditNoteController::class, 'generatePdf'])->whereNumber('id');
+        Route::get('/{id}/download-xml', [CreditNoteController::class, 'downloadXml'])->whereNumber('id');
+        Route::get('/{id}/download-cdr', [CreditNoteController::class, 'downloadCdr'])->whereNumber('id');
+        Route::get('/{id}/download-pdf', [CreditNoteController::class, 'downloadPdf'])->whereNumber('id');
+    });
+
+    // Notas de débito (protegidas con Sanctum y contexto de empresa)
+    Route::prefix('debit-notes')->group(function () {
+        Route::get('/catalogs/motivos', [DebitNoteController::class, 'motives']);
+        Route::get('/', [DebitNoteController::class, 'index']);
+        Route::post('/', [DebitNoteController::class, 'store']);
+        Route::get('/{id}', [DebitNoteController::class, 'show'])->whereNumber('id');
+        Route::post('/{id}/send-sunat', [DebitNoteController::class, 'sendToSunat'])->whereNumber('id');
+        Route::post('/{id}/generate-pdf', [DebitNoteController::class, 'generatePdf'])->whereNumber('id');
+        Route::get('/{id}/download-xml', [DebitNoteController::class, 'downloadXml'])->whereNumber('id');
+        Route::get('/{id}/download-cdr', [DebitNoteController::class, 'downloadCdr'])->whereNumber('id');
+        Route::get('/{id}/download-pdf', [DebitNoteController::class, 'downloadPdf'])->whereNumber('id');
+    });
+
+    // Guías de remisión (protegidas con Sanctum y contexto de empresa)
+    Route::prefix('dispatch-guides')->group(function () {
+        Route::get('/catalogs/transfer-reasons', [DispatchGuideController::class, 'transferReasons']);
+        Route::get('/catalogs/transport-modes', [DispatchGuideController::class, 'transportModes']);
+        Route::get('/', [DispatchGuideController::class, 'index']);
+        Route::post('/', [DispatchGuideController::class, 'store']);
+        Route::get('/{id}', [DispatchGuideController::class, 'show'])->whereNumber('id');
+        Route::post('/{id}/send-sunat', [DispatchGuideController::class, 'sendToSunat'])->whereNumber('id');
+        Route::get('/{id}/check-status', [DispatchGuideController::class, 'checkStatus'])->whereNumber('id');
+        Route::post('/{id}/generate-pdf', [DispatchGuideController::class, 'generatePdf'])->whereNumber('id');
+        Route::get('/{id}/download-xml', [DispatchGuideController::class, 'downloadXml'])->whereNumber('id');
+        Route::get('/{id}/download-cdr', [DispatchGuideController::class, 'downloadCdr'])->whereNumber('id');
+        Route::get('/{id}/download-pdf', [DispatchGuideController::class, 'downloadPdf'])->whereNumber('id');
+    });
+
 Route::get(
     '/documentos/consultar',
     [ConsultaDocumentoController::class, 'consultar']
@@ -177,5 +227,77 @@ Route::get(
 
         // Estadísticas de consultas
         Route::get('/estadisticas', [ConsultaCpeController::class, 'estadisticasConsultas']);
+    });
+});
+
+// Empresa-facing API: the tenant and environment come exclusively from the API Key.
+// company_id is injected by the middleware; a client-supplied different ID is rejected.
+Route::prefix('v1/external')->middleware(AuthenticateCompanyApiKey::class)->group(function () {
+    Route::get('/branches', [BranchController::class, 'index']);
+    Route::get('/branches/{branch}', [BranchController::class, 'show']);
+
+    Route::get('/clients', [ClientController::class, 'index']);
+    Route::post('/clients', [ClientController::class, 'store']);
+    Route::get('/clients/{client}', [ClientController::class, 'show']);
+    Route::post('/clients/search-by-document', [ClientController::class, 'searchByDocument']);
+
+    Route::prefix('invoices')->group(function () {
+        Route::get('/', [InvoiceController::class, 'index']);
+        Route::post('/', [InvoiceController::class, 'store']);
+        Route::get('/{id}', [InvoiceController::class, 'show']);
+        Route::post('/{id}/send-sunat', [InvoiceController::class, 'sendToSunat']);
+        Route::get('/{id}/download-xml', [InvoiceController::class, 'downloadXml']);
+        Route::get('/{id}/download-cdr', [InvoiceController::class, 'downloadCdr']);
+        Route::get('/{id}/download-pdf', [InvoiceController::class, 'downloadPdf']);
+        Route::post('/{id}/generate-pdf', [InvoiceController::class, 'generatePdf']);
+    });
+
+    Route::prefix('boletas')->group(function () {
+        Route::get('/', [BoletaController::class, 'index']);
+        Route::post('/', [BoletaController::class, 'store']);
+        Route::get('/{id}', [BoletaController::class, 'show']);
+        Route::post('/{id}/send-sunat', [BoletaController::class, 'sendToSunat']);
+        Route::get('/{id}/download-xml', [BoletaController::class, 'downloadXml']);
+        Route::get('/{id}/download-cdr', [BoletaController::class, 'downloadCdr']);
+        Route::get('/{id}/download-pdf', [BoletaController::class, 'downloadPdf']);
+        Route::post('/{id}/generate-pdf', [BoletaController::class, 'generatePdf']);
+    });
+
+    Route::prefix('credit-notes')->group(function () {
+        Route::get('/catalogs/motivos', [CreditNoteController::class, 'motives']);
+        Route::get('/', [CreditNoteController::class, 'index']);
+        Route::post('/', [CreditNoteController::class, 'store']);
+        Route::get('/{id}', [CreditNoteController::class, 'show'])->whereNumber('id');
+        Route::post('/{id}/send-sunat', [CreditNoteController::class, 'sendToSunat'])->whereNumber('id');
+        Route::post('/{id}/generate-pdf', [CreditNoteController::class, 'generatePdf'])->whereNumber('id');
+        Route::get('/{id}/download-xml', [CreditNoteController::class, 'downloadXml'])->whereNumber('id');
+        Route::get('/{id}/download-cdr', [CreditNoteController::class, 'downloadCdr'])->whereNumber('id');
+        Route::get('/{id}/download-pdf', [CreditNoteController::class, 'downloadPdf'])->whereNumber('id');
+    });
+
+    Route::prefix('debit-notes')->group(function () {
+        Route::get('/catalogs/motivos', [DebitNoteController::class, 'motives']);
+        Route::get('/', [DebitNoteController::class, 'index']);
+        Route::post('/', [DebitNoteController::class, 'store']);
+        Route::get('/{id}', [DebitNoteController::class, 'show'])->whereNumber('id');
+        Route::post('/{id}/send-sunat', [DebitNoteController::class, 'sendToSunat'])->whereNumber('id');
+        Route::post('/{id}/generate-pdf', [DebitNoteController::class, 'generatePdf'])->whereNumber('id');
+        Route::get('/{id}/download-xml', [DebitNoteController::class, 'downloadXml'])->whereNumber('id');
+        Route::get('/{id}/download-cdr', [DebitNoteController::class, 'downloadCdr'])->whereNumber('id');
+        Route::get('/{id}/download-pdf', [DebitNoteController::class, 'downloadPdf'])->whereNumber('id');
+    });
+
+    Route::prefix('dispatch-guides')->group(function () {
+        Route::get('/catalogs/transfer-reasons', [DispatchGuideController::class, 'transferReasons']);
+        Route::get('/catalogs/transport-modes', [DispatchGuideController::class, 'transportModes']);
+        Route::get('/', [DispatchGuideController::class, 'index']);
+        Route::post('/', [DispatchGuideController::class, 'store']);
+        Route::get('/{id}', [DispatchGuideController::class, 'show'])->whereNumber('id');
+        Route::post('/{id}/send-sunat', [DispatchGuideController::class, 'sendToSunat'])->whereNumber('id');
+        Route::get('/{id}/check-status', [DispatchGuideController::class, 'checkStatus'])->whereNumber('id');
+        Route::post('/{id}/generate-pdf', [DispatchGuideController::class, 'generatePdf'])->whereNumber('id');
+        Route::get('/{id}/download-xml', [DispatchGuideController::class, 'downloadXml'])->whereNumber('id');
+        Route::get('/{id}/download-cdr', [DispatchGuideController::class, 'downloadCdr'])->whereNumber('id');
+        Route::get('/{id}/download-pdf', [DispatchGuideController::class, 'downloadPdf'])->whereNumber('id');
     });
 });

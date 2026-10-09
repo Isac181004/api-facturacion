@@ -4,6 +4,8 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use App\Console\Commands\CreateDirectoryStructure;
+use App\Console\Commands\PrivatizeCompanyDocumentFiles;
+use App\Support\TenantContext;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -12,7 +14,7 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->scoped(TenantContext::class, fn () => new TenantContext());
     }
 
     /**
@@ -23,6 +25,7 @@ class AppServiceProvider extends ServiceProvider
         if ($this->app->runningInConsole()) {
             $this->commands([
                 CreateDirectoryStructure::class,
+                PrivatizeCompanyDocumentFiles::class,
             ]);
         }
     }

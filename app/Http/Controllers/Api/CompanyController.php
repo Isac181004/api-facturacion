@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\Company\StoreCompanyRequest;
 use App\Http\Requests\Company\UpdateCompanyRequest;
 use App\Models\Company;
+use App\Services\CompanyCertificateService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Exception;
 
 class CompanyController extends Controller
@@ -50,18 +52,35 @@ class CompanyController extends Controller
     /**
      * Crear nueva empresa
      */
-    public function store(StoreCompanyRequest $request): JsonResponse
+    public function store(StoreCompanyRequest $request, CompanyCertificateService $certificates): JsonResponse
     {
+        abort_unless($request->user()?->hasRole('super_admin'), 403);
+
         try {
             $validatedData = $this->processRequestData($request);
+            if (!empty($validatedData['modo_produccion'])) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Crea la empresa en Beta y habilita producción después de cargar credenciales y certificado.'
+                ], 422);
+            }
             $company = Company::create($validatedData);
+            if ($request->hasFile('certificado_pem')) {
+                $certificates->store($company, $request->file('certificado_pem'));
+            }
 
             return response()->json([
                 'success' => true,
                 'message' => 'Empresa creada exitosamente',
-                'data' => $company->load('configurations')
+                'data' => $company
             ], 201);
 
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Errores de validación',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (Exception $e) {
             return $this->errorResponse('Error al crear empresa', $e);
         }
@@ -73,12 +92,7 @@ class CompanyController extends Controller
     public function show(Company $company): JsonResponse
     {
         try {
-            $company->load([
-                'branches',
-                'configurations' => function($query) {
-                    $query->active()->orderBy('config_type')->orderBy('environment');
-                }
-            ]);
+            $company->load(['branches']);
 
             return response()->json([
                 'success' => true,
@@ -101,24 +115,50 @@ class CompanyController extends Controller
     /**
      * Actualizar empresa
      */
-    public function update(UpdateCompanyRequest $request, Company $company): JsonResponse
+    public function update(UpdateCompanyRequest $request, Company $company, CompanyCertificateService $certificates): JsonResponse
     {
+        abort_unless($request->user()?->hasRole('super_admin'), 403);
+
         try {
-            $validatedData = $this->processRequestData($request);
+            $validatedData = $this->processRequestData($request, true);
+            if (array_key_exists('modo_produccion', $validatedData) &&
+                (bool) $validatedData['modo_produccion'] !== (bool) $company->modo_produccion) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Cambia el ambiente con la ruta de autorización de producción.'
+                ], 422);
+            }
+            if ($request->hasFile('certificado_pem')) {
+                $certificates->store($company, $request->file('certificado_pem'));
+            }
+            $wasActive = (bool) $company->activo;
             $company->update($validatedData);
+            if ($wasActive !== (bool) $company->activo) {
+                $company->revokeApiKeysForEnvironment('test');
+                $company->revokeApiKeysForEnvironment('live');
+            }
 
             Log::info("Empresa actualizada exitosamente", [
                 'company_id' => $company->id,
                 'ruc' => $company->ruc,
-                'changes' => $company->getChanges()
+                'changed_fields' => array_values(array_diff(array_keys($company->getChanges()), [
+                    'clave_sol', 'certificado_pem', 'certificado_password',
+                    'gre_client_secret_beta', 'gre_client_secret_produccion', 'gre_clave_sol',
+                ]))
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Empresa actualizada exitosamente',
-                'data' => $company->fresh()->load('configurations')
+                'data' => $company->fresh()
             ]);
 
+        } catch (ValidationException $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Errores de validación',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (Exception $e) {
             Log::error("Error al actualizar empresa", [
                 'company_id' => $company->id,
@@ -132,8 +172,10 @@ class CompanyController extends Controller
     /**
      * Eliminar empresa (soft delete)
      */
-    public function destroy(Company $company): JsonResponse
+    public function destroy(Request $request, Company $company): JsonResponse
     {
+        abort_unless($request->user()?->hasRole('super_admin'), 403);
+
         try {
             if ($this->hasAssociatedDocuments($company)) {
                 return response()->json([
@@ -143,6 +185,8 @@ class CompanyController extends Controller
             }
 
             $company->update(['activo' => false]);
+            $company->revokeApiKeysForEnvironment('test');
+            $company->revokeApiKeysForEnvironment('live');
 
             Log::warning("Empresa desactivada", [
                 'company_id' => $company->id,
@@ -167,10 +211,17 @@ class CompanyController extends Controller
     /**
      * Activar empresa
      */
-    public function activate(Company $company): JsonResponse
+    public function activate(Request $request, Company $company): JsonResponse
     {
+        abort_unless($request->user()?->hasRole('super_admin'), 403);
+
         try {
-            $company->update(['activo' => true]);
+            if (!$company->activo) {
+                // Do not revive credentials that may have remained active before tenant safeguards were deployed.
+                $company->revokeApiKeysForEnvironment('test');
+                $company->revokeApiKeysForEnvironment('live');
+                $company->update(['activo' => true]);
+            }
 
             Log::info("Empresa activada", [
                 'company_id' => $company->id,
@@ -196,8 +247,10 @@ class CompanyController extends Controller
     /**
      * Cambiar modo de producción
      */
-    public function toggleProductionMode(Request $request, Company $company): JsonResponse
+    public function toggleProductionMode(Request $request, Company $company, CompanyCertificateService $certificates): JsonResponse
     {
+        abort_unless($request->user()?->hasRole('super_admin'), 403);
+
         try {
             $validator = Validator::make($request->all(), [
                 'modo_produccion' => 'required|boolean'
@@ -212,9 +265,18 @@ class CompanyController extends Controller
             }
 
             $oldMode = $company->modo_produccion;
-            $newMode = $request->modo_produccion;
+            $newMode = filter_var($request->modo_produccion, FILTER_VALIDATE_BOOLEAN);
+            if ($newMode && (!$company->usuario_sol || !$company->clave_sol || !$certificates->hasValidPrivateCertificate($company))) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Para autorizar producción, la empresa debe tener usuario SOL, clave SOL y certificado PEM válidos.'
+                ], 422);
+            }
 
             $company->update(['modo_produccion' => $newMode]);
+            if ((bool) $oldMode !== (bool) $newMode) {
+                $company->revokeApiKeysForEnvironment($oldMode ? 'live' : 'test');
+            }
 
             Log::info("Modo de producción cambiado", [
                 'company_id' => $company->id,
@@ -246,18 +308,25 @@ class CompanyController extends Controller
     /**
      * Procesar datos de la request
      */
-    private function processRequestData(Request $request): array
+    private function processRequestData(Request $request, bool $updating = false): array
     {
         $validatedData = $request->validated();
 
-        // Procesar booleanos
-        $validatedData['modo_produccion'] = $this->processBoolean($validatedData['modo_produccion'] ?? false);
-        $validatedData['activo'] = $this->processBoolean($validatedData['activo'] ?? true);
-
-        // Procesar archivos
-        if ($request->hasFile('certificado_pem')) {
-            $validatedData['certificado_pem'] = $this->storeFile($request->file('certificado_pem'), 'certificado', 'certificado.pem');
+        // Defaults apply only when creating; omitted update fields must remain unchanged.
+        if (array_key_exists('modo_produccion', $validatedData)) {
+            $validatedData['modo_produccion'] = $this->processBoolean($validatedData['modo_produccion']);
+        } elseif (!$updating) {
+            $validatedData['modo_produccion'] = false;
         }
+
+        if (array_key_exists('activo', $validatedData)) {
+            $validatedData['activo'] = $this->processBoolean($validatedData['activo']);
+        } elseif (!$updating) {
+            $validatedData['activo'] = true;
+        }
+
+        // Certificate uploads are written by CompanyCertificateService to a private, company-specific path.
+        unset($validatedData['certificado_pem']);
 
         if ($request->hasFile('logo_path')) {
             $fileName = 'logo_' . time() . '.' . $request->file('logo_path')->getClientOriginalExtension();
@@ -290,6 +359,8 @@ class CompanyController extends Controller
     {
         return $company->invoices()->exists() ||
                $company->boletas()->exists() ||
+               $company->creditNotes()->exists() ||
+               $company->debitNotes()->exists() ||
                $company->dispatchGuides()->exists();
     }
 
@@ -319,9 +390,11 @@ class CompanyController extends Controller
      */
     private function errorResponse(string $message, Exception $e): JsonResponse
     {
+        Log::error($message, ['exception' => $e]);
+
         return response()->json([
             'success' => false,
-            'message' => $message . ': ' . $e->getMessage()
+            'message' => $message . '. Revisa los logs del servidor.',
         ], 500);
     }
 }

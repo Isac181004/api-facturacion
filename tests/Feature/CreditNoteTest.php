@@ -10,7 +10,8 @@ uses(RefreshDatabase::class);
 
 test('puede crear una nota de crédito básica', function () {
     // Preparar datos de prueba
-    $company = Company::factory()->create();
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
     $branch = Branch::factory()->create(['company_id' => $company->id]);
     $client = Client::factory()->create();
 
@@ -42,7 +43,7 @@ test('puede crear una nota de crédito básica', function () {
         ]
     ];
 
-    $response = $this->postJson('/api/v1/credit-notes', $data);
+    $response = $this->postJson('/api/v1/external/credit-notes', $data);
 
     $response->assertStatus(201)
             ->assertJson([
@@ -59,7 +60,8 @@ test('puede crear una nota de crédito básica', function () {
 });
 
 test('puede crear una nota de crédito con forma de pago a crédito', function () {
-    $company = Company::factory()->create();
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
     $branch = Branch::factory()->create(['company_id' => $company->id]);
     $client = Client::factory()->create();
 
@@ -98,7 +100,7 @@ test('puede crear una nota de crédito con forma de pago a crédito', function (
         ]
     ];
 
-    $response = $this->postJson('/api/v1/credit-notes', $data);
+    $response = $this->postJson('/api/v1/external/credit-notes', $data);
 
     $response->assertStatus(201)
             ->assertJson([
@@ -113,7 +115,8 @@ test('puede crear una nota de crédito con forma de pago a crédito', function (
 });
 
 test('puede crear una nota de crédito con guías relacionadas', function () {
-    $company = Company::factory()->create();
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
     $branch = Branch::factory()->create(['company_id' => $company->id]);
 
     $data = [
@@ -150,7 +153,7 @@ test('puede crear una nota de crédito con guías relacionadas', function () {
         ]
     ];
 
-    $response = $this->postJson('/api/v1/credit-notes', $data);
+    $response = $this->postJson('/api/v1/external/credit-notes', $data);
 
     $response->assertStatus(201);
 
@@ -161,7 +164,8 @@ test('puede crear una nota de crédito con guías relacionadas', function () {
 });
 
 test('valida motivos correctos de nota de crédito', function () {
-    $company = Company::factory()->create();
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
     $branch = Branch::factory()->create(['company_id' => $company->id]);
 
     $data = [
@@ -192,14 +196,17 @@ test('valida motivos correctos de nota de crédito', function () {
         ]
     ];
 
-    $response = $this->postJson('/api/v1/credit-notes', $data);
+    $response = $this->postJson('/api/v1/external/credit-notes', $data);
 
     $response->assertStatus(422)
             ->assertJsonValidationErrors('cod_motivo');
 });
 
 test('puede obtener el catálogo de motivos', function () {
-    $response = $this->getJson('/api/v1/credit-notes/catalogs/motivos');
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
+
+    $response = $this->getJson('/api/v1/external/credit-notes/catalogs/motivos');
 
     $response->assertStatus(200)
             ->assertJson([
@@ -217,7 +224,8 @@ test('puede obtener el catálogo de motivos', function () {
 });
 
 test('puede listar notas de crédito con filtros', function () {
-    $company = Company::factory()->create();
+    $company = Company::factory()->create(['modo_produccion' => false]);
+    $this->withHeader('Authorization', 'Bearer ' . createCompanyTestApiKey($company));
     $branch = Branch::factory()->create(['company_id' => $company->id]);
     
     // Crear algunas notas de crédito
@@ -233,7 +241,7 @@ test('puede listar notas de crédito con filtros', function () {
         'estado_sunat' => 'ACEPTADO'
     ]);
 
-    $response = $this->getJson("/api/v1/credit-notes?company_id={$company->id}&estado_sunat=PENDIENTE");
+    $response = $this->getJson("/api/v1/external/credit-notes?company_id={$company->id}&estado_sunat=PENDIENTE");
 
     $response->assertStatus(200)
             ->assertJson([

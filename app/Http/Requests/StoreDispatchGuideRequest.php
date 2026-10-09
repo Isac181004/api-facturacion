@@ -4,12 +4,21 @@ namespace App\Http\Requests;
 
 use Illuminate\Foundation\Http\FormRequest;
 use App\Models\Branch;
+use App\Models\Client;
 
 class StoreDispatchGuideRequest extends FormRequest
 {
     public function authorize(): bool
     {
         return true;
+    }
+
+    protected function prepareForValidation(): void
+    {
+        // Alias legado aceptado por integraciones previas.
+        if (!$this->filled('fecha_traslado') && $this->filled('fec_traslado')) {
+            $this->merge(['fecha_traslado' => $this->input('fec_traslado')]);
+        }
     }
 
     public function rules(): array
@@ -23,7 +32,7 @@ class StoreDispatchGuideRequest extends FormRequest
             'version' => 'nullable|string|max:10',
             
             // Datos del envío
-            'cod_traslado' => 'required|string|max:2',
+            'cod_traslado' => 'required|string|in:01,02,03,04,05,06,07,08,09,13,14,17,18,19',
             'des_traslado' => 'nullable|string|max:250',
             'mod_traslado' => 'required|string|in:01,02',
             'fecha_traslado' => 'required|date|after_or_equal:fecha_emision',
@@ -104,6 +113,13 @@ class StoreDispatchGuideRequest extends FormRequest
 
             if (!$branch) {
                 $validator->errors()->add('branch_id', 'La sucursal no pertenece a la empresa seleccionada.');
+            }
+
+            $recipientBelongsToCompany = Client::where('id', $this->input('destinatario_id'))
+                ->where('company_id', $this->input('company_id'))
+                ->exists();
+            if (!$recipientBelongsToCompany) {
+                $validator->errors()->add('destinatario_id', 'El destinatario no pertenece a la empresa seleccionada.');
             }
 
             // Validaciones específicas según modalidad de transporte

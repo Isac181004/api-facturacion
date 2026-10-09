@@ -6,19 +6,22 @@ use App\Http\Controllers\Controller;
 use App\Models\Company;
 use App\Models\Branch;
 use App\Models\User;
+use App\Services\CompanyCertificateService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class SetupController extends Controller
 {
     /**
      * Setup completo del sistema
      */
-    public function setup(Request $request)
+    public function setup(Request $request, CompanyCertificateService $certificates)
     {
+        abort_unless($request->user()?->hasRole('super_admin'), 403);
         // Verificar que las migraciones estén ejecutadas
         if ($this->checkMigrationsPending()) {
             return response()->json([
@@ -55,7 +58,7 @@ class SetupController extends Controller
             'company.web' => 'nullable|url|max:255',
             'company.usuario_sol' => 'required|string|max:255',
             'company.clave_sol' => 'required|string|max:255',
-            'certificado_pem' => 'nullable|file|mimes:pem,crt,cer,txt|max:2048',
+            'certificado_pem' => 'nullable|file|extensions:pem|max:2048',
             'certificado_password' => 'nullable|string|max:255',
             'logo_path' => 'nullable|file|mimes:jpeg,jpg,png,gif|max:1024',
             'modo_produccion' => 'nullable|in:true,false,1,0',
@@ -70,10 +73,32 @@ class SetupController extends Controller
             // Preparar datos de la empresa
             $companyData = $this->prepareCompanyData($request);
 
+            $existingCompany = Company::where('ruc', $companyData['ruc'])->first();
+            $previousProductionMode = $existingCompany?->modo_produccion;
+            $previousActiveState = $existingCompany?->activo;
             $company = Company::updateOrCreate(
                 ['ruc' => $companyData['ruc']],
                 $companyData
             );
+            if ($previousProductionMode !== null &&
+                (bool) $previousProductionMode !== (bool) $company->modo_produccion) {
+                $company->revokeApiKeysForEnvironment($previousProductionMode ? 'live' : 'test');
+            }
+            if ($previousActiveState !== null && (bool) $previousActiveState !== (bool) $company->activo) {
+                $company->revokeApiKeysForEnvironment('test');
+                $company->revokeApiKeysForEnvironment('live');
+            }
+            if ($request->hasFile('certificado_pem')) {
+                $certificates->store($company, $request->file('certificado_pem'));
+            }
+
+            if ($company->modo_produccion &&
+                (!$company->usuario_sol || !$company->clave_sol || !$certificates->hasValidPrivateCertificate($company))) {
+                DB::rollBack();
+                return response()->json([
+                    'message' => 'Para habilitar producción se requieren credenciales SOL y un certificado PEM válido.',
+                ], 422);
+            }
 
             // Crear sucursal principal
             $branch = $this->createMainBranch($company);
@@ -103,6 +128,12 @@ class SetupController extends Controller
                 ]
             ]);
 
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            return response()->json([
+                'message' => 'Errores de validación',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json([
@@ -117,6 +148,8 @@ class SetupController extends Controller
      */
     public function migrate(Request $request)
     {
+        abort_unless($request->user()?->hasRole('super_admin'), 403);
+
         try {
             Artisan::call('migrate', ['--force' => true]);
             $output = Artisan::output();
@@ -139,6 +172,8 @@ class SetupController extends Controller
      */
     public function seed(Request $request)
     {
+        abort_unless($request->user()?->hasRole('super_admin'), 403);
+
         $request->validate([
             'class' => 'nullable|string'
         ]);
@@ -221,12 +256,12 @@ class SetupController extends Controller
     /**
      * Configuración del entorno SUNAT
      */
-    public function configureSunat(Request $request)
+    public function configureSunat(Request $request, CompanyCertificateService $certificates)
     {
         $request->validate([
             'company_id' => 'required|integer|exists:companies,id',
             'environment' => 'required|in:beta,produccion',
-            'certificate_file' => 'nullable|file',
+            'certificate_file' => 'nullable|file|extensions:pem|max:2048',
             'certificate_password' => 'nullable|string',
             'force_update' => 'boolean'
         ]);
@@ -236,25 +271,37 @@ class SetupController extends Controller
 
             // Verificar permisos
             if (!$request->user()->hasRole('super_admin') && 
-                $request->user()->company_id !== $company->id) {
+                (int) $request->user()->company_id !== (int) $company->id) {
                 return response()->json([
                     'message' => 'No tienes permisos para configurar esta empresa',
                     'status' => 'error'
                 ], 403);
             }
 
-            // Configurar certificado si se proporciona
+            if ($request->environment === 'produccion' && !$request->user()->hasRole('super_admin')) {
+                return response()->json(['message' => 'La habilitación de producción requiere autorización administrativa.'], 403);
+            }
+
+            // Each company owns its private PEM; no shared public certificate path is used.
             if ($request->hasFile('certificate_file')) {
-                $certificateFile = $request->file('certificate_file');
-                $path = $certificateFile->storeAs('certificado', 'certificado.pem', 'public');
-                
-                $company->update([
-                    'certificado_pem' => $path,
-                    'certificado_password' => $request->certificate_password
-                ]);
+                $certificates->store($company, $request->file('certificate_file'));
+                if ($request->filled('certificate_password')) {
+                    $company->update(['certificado_password' => $request->certificate_password]);
+                }
+            }
+
+            if ($request->environment === 'produccion' &&
+                (!$company->usuario_sol || !$company->clave_sol || !$certificates->hasValidPrivateCertificate($company))) {
+                return response()->json(['message' => 'Para producción se requieren credenciales SOL y un certificado PEM válido.'], 422);
             }
 
             // Configurar para SUNAT
+            $previousProductionMode = (bool) $company->modo_produccion;
+            $newProductionMode = $request->environment === 'produccion';
+            $company->update(['modo_produccion' => $newProductionMode]);
+            if ($previousProductionMode !== $newProductionMode) {
+                $company->revokeApiKeysForEnvironment($previousProductionMode ? 'live' : 'test');
+            }
             $this->setupCompanyForSunat($company, $request->environment);
 
             return response()->json([
@@ -267,6 +314,11 @@ class SetupController extends Controller
                 ]
             ]);
 
+        } catch (ValidationException $e) {
+            return response()->json([
+                'message' => 'Errores de validación',
+                'errors' => $e->errors(),
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'message' => 'Error al configurar SUNAT: ' . $e->getMessage(),
@@ -295,10 +347,6 @@ class SetupController extends Controller
                     'beta' => 'https://e-beta.sunat.gob.pe/ol-it-wsconscpegem-beta/billConsultService',
                     'produccion' => 'https://e-factura.sunat.gob.pe/ol-it-wsconscpegem/billConsultService'
                 ]
-            ],
-            'certificados' => [
-                'ruta_certificado' => $company->certificado_pem,
-                'password_certificado' => $company->certificado_password
             ],
             'configuraciones_avanzadas' => [
                 'timeout_conexion' => 30,
@@ -331,22 +379,17 @@ class SetupController extends Controller
         $companyData['endpoint_beta'] = 'https://e-beta.sunat.gob.pe/ol-ti-itcpfegem-beta/billService';
         $companyData['endpoint_produccion'] = 'https://e-factura.sunat.gob.pe/ol-ti-itcpfegem/billService';
         
-        // Configurar modo producción basado en environment
-        $modoproduccion = $request->input('modo_produccion');
-        $companyData['modo_produccion'] = $modoproduccion !== null 
-            ? filter_var($modoproduccion, FILTER_VALIDATE_BOOLEAN) 
-            : $request->environment === 'produccion';
+        // The selected SUNAT environment is authoritative; ignore any client-supplied mode flag.
+        $companyData['modo_produccion'] = $request->environment === 'produccion';
             
         $activo = $request->input('activo');
         $companyData['activo'] = $activo !== null 
             ? filter_var($activo, FILTER_VALIDATE_BOOLEAN) 
             : true;
         
-        // Procesar certificado PEM si se subió un archivo
+        // The uploaded PEM is stored after company creation by CompanyCertificateService.
+        unset($companyData['certificado_pem']);
         if ($request->hasFile('certificado_pem')) {
-            $certificateFile = $request->file('certificado_pem');
-            $path = $certificateFile->storeAs('certificado', 'certificado.pem', 'public');
-            $companyData['certificado_pem'] = $path;
             $companyData['certificado_password'] = $request->certificado_password;
         }
         
@@ -442,19 +485,20 @@ class SetupController extends Controller
      */
     private function checkCertificatesDirectory(): array
     {
-        // Verificar directorios donde realmente se guardan los archivos
-        $certificadoExists = Storage::disk('public')->exists('certificado');
+        // PEM certificates are private; only company logos use the public disk.
+        $privateCertificatesDirectory = 'sunat/certificates/companies';
+        $privateDirectoryExists = Storage::disk('local')->exists($privateCertificatesDirectory);
         $logoExists = Storage::disk('public')->exists('logo');
-        
-        // Crear directorios si no existen
-        if (!$certificadoExists) Storage::disk('public')->makeDirectory('certificado');
-        if (!$logoExists) Storage::disk('public')->makeDirectory('logo');
-        
+
+        if (!$logoExists) {
+            Storage::disk('public')->makeDirectory('logo');
+        }
+
         return [
-            'certificado_directory' => $certificadoExists,
+            'private_certificates_directory' => $privateDirectoryExists,
             'logo_directory' => $logoExists,
-            'certificado_file_exists' => Storage::disk('public')->exists('certificado/certificado.pem'),
-            'storage_link_exists' => is_link(public_path('storage'))
+            'legacy_public_certificate_exists' => Storage::disk('public')->exists('certificado/certificado.pem'),
+            'storage_link_exists' => is_link(public_path('storage')),
         ];
     }
 }

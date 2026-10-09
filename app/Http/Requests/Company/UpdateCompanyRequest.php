@@ -9,7 +9,7 @@ class UpdateCompanyRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true; // ajusta si necesitas lógica de autorización
+        return (bool) $this->user()?->hasRole('super_admin');
     }
 
     public function rules(): array
@@ -35,7 +35,7 @@ class UpdateCompanyRequest extends FormRequest
             'web' => 'nullable|url|max:255',
             'usuario_sol' => 'required|string|max:50',
             'clave_sol' => 'required|string|max:100',
-            'certificado_pem' => 'nullable|file|mimes:pem,crt,cer,txt|max:2048',
+            'certificado_pem' => 'nullable|file|extensions:pem|max:2048',
             'certificado_password' => 'nullable|string|max:100',
             'endpoint_beta' => 'nullable|url|max:255',
             'endpoint_produccion' => 'nullable|url|max:255',

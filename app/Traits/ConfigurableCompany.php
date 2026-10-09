@@ -65,11 +65,11 @@ trait ConfigurableCompany
             
             'credenciales_gre' => [
                 'beta' => [
-                    'client_id' => 'test-85e5b0ae-255c-4891-a595-0b98c65c9854',
-                    'client_secret' => 'test-Hty/M6QshYvPgItX2P0+Kw==',
-                    'ruc_proveedor' => '20161515648',
-                    'usuario_sol' => 'MODDATOS',
-                    'clave_sol' => 'MODDATOS',
+                    'client_id' => null,
+                    'client_secret' => null,
+                    'ruc_proveedor' => null,
+                    'usuario_sol' => null,
+                    'clave_sol' => null,
                 ],
                 'produccion' => [
                     'client_id' => null,

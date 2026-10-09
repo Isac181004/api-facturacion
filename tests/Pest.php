@@ -1,5 +1,24 @@
 <?php
 
+use App\Models\Company;
+use Illuminate\Support\Str;
+
+function createCompanyTestApiKey(Company $company, string $environment = 'test'): string
+{
+    $prefix = 'mc_' . $environment . '_' . Str::lower(Str::random(12));
+    $secret = $prefix . '_' . Str::random(48);
+
+    $company->apiKeys()->create([
+        'name' => 'Feature test key',
+        'key_prefix' => $prefix,
+        'token_hash' => hash('sha256', $secret),
+        'environment' => $environment,
+        'active' => true,
+    ]);
+
+    return $secret;
+}
+
 /*
 |--------------------------------------------------------------------------
 | Test Case

@@ -56,25 +56,19 @@ class GreenterService
         
         $see->setService($endpoint);
         
-        // Configurar certificado cargando desde archivo
+        // Load the certificate from this company's private storage, not a shared public path.
         try {
-            $certificadoPath = storage_path('app/public/certificado/certificado.pem');
-            
-            if (!file_exists($certificadoPath)) {
-                throw new Exception("Archivo de certificado no encontrado: " . $certificadoPath);
-            }
-            
-            $certificadoContent = file_get_contents($certificadoPath);
-            
-            if ($certificadoContent === false) {
-                throw new Exception("No se pudo leer el archivo de certificado");
-            }
-            
-            $see->setCertificate($certificadoContent);
-            Log::info("Certificado cargado desde archivo: " . $certificadoPath);
+            $certificate = app(CompanyCertificateService::class)->contents($this->company);
+            $see->setCertificate($certificate);
+            Log::info('Certificado SUNAT cargado desde almacenamiento privado.', [
+                'company_id' => $this->company->id,
+            ]);
         } catch (Exception $e) {
-            Log::error("Error al configurar certificado: " . $e->getMessage());
-            throw new Exception("Error al configurar certificado: " . $e->getMessage());
+            Log::error('Error al configurar certificado SUNAT.', [
+                'company_id' => $this->company->id,
+                'error' => $e->getMessage(),
+            ]);
+            throw new Exception('Error al configurar certificado: ' . $e->getMessage(), 0, $e);
         }
         
         // Configurar credenciales SOL
@@ -108,25 +102,19 @@ class GreenterService
             'cpe' => $endpoint,
         ]);
         
-        // Configurar certificado
+        // GRE uses the same company-specific PEM as electronic invoicing.
         try {
-            $certificadoPath = storage_path('app/public/certificado/certificado.pem');
-            
-            if (!file_exists($certificadoPath)) {
-                throw new Exception("Archivo de certificado no encontrado para GRE: " . $certificadoPath);
-            }
-            
-            $certificadoContent = file_get_contents($certificadoPath);
-            
-            if ($certificadoContent === false) {
-                throw new Exception("No se pudo leer el archivo de certificado para GRE");
-            }
-            
-            $api->setCertificate($certificadoContent);
-            Log::info("Certificado GRE cargado desde archivo: " . $certificadoPath);
+            $certificate = app(CompanyCertificateService::class)->contents($this->company);
+            $api->setCertificate($certificate);
+            Log::info('Certificado GRE cargado desde almacenamiento privado.', [
+                'company_id' => $this->company->id,
+            ]);
         } catch (Exception $e) {
-            Log::error("Error al configurar certificado para GRE: " . $e->getMessage());
-            throw new Exception("Error al configurar certificado para GRE: " . $e->getMessage());
+            Log::error('Error al configurar certificado para GRE.', [
+                'company_id' => $this->company->id,
+                'error' => $e->getMessage(),
+            ]);
+            throw new Exception('Error al configurar certificado para GRE: ' . $e->getMessage(), 0, $e);
         }
         
         // Configurar credenciales SOL para API GRE

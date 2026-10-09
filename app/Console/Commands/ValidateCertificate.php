@@ -5,6 +5,7 @@ namespace App\Console\Commands;
 use Illuminate\Console\Command;
 use App\Models\Company;
 use App\Services\GreenterService;
+use App\Services\CompanyCertificateService;
 
 class ValidateCertificate extends Command
 {
@@ -25,13 +26,15 @@ class ValidateCertificate extends Command
         $this->info("📄 RUC: {$company->ruc}");
         
         // Verificar que existe certificado
-        if (empty($company->certificado_pem)) {
-            $this->error("❌ No hay certificado configurado");
-            return;
+        try {
+            $pem = app(CompanyCertificateService::class)->contents($company);
+        } catch (\Throwable $exception) {
+            $this->error('❌ No se pudo cargar el PEM privado: ' . $exception->getMessage());
+            return self::FAILURE;
         }
 
-        // Validar estructura PEM
-        $this->validatePemStructure($company->certificado_pem);
+        // Validate certificate bytes resolved from the company's private storage.
+        $this->validatePemStructure($pem);
         
         // Probar carga en Greenter
         try {
@@ -44,7 +47,7 @@ class ValidateCertificate extends Command
         }
 
         // Mostrar información del certificado
-        $this->showCertificateInfo($company->certificado_pem);
+        $this->showCertificateInfo($pem);
         
         $this->info("✅ Certificado válido y listo para usar con SUNAT");
     }
@@ -55,6 +58,10 @@ class ValidateCertificate extends Command
 
         // Verificar clave privada
         if (strpos($pem, '-----BEGIN PRIVATE KEY-----') !== false) {
+            $this->info("  ✅ Clave privada encontrada");
+        } elseif (strpos($pem, '-----BEGIN RSA PRIVATE KEY-----') !== false ||
+            strpos($pem, '-----BEGIN EC PRIVATE KEY-----') !== false ||
+            strpos($pem, '-----BEGIN ENCRYPTED PRIVATE KEY-----') !== false) {
             $this->info("  ✅ Clave privada encontrada");
         } else {
             $this->error("  ❌ Clave privada no encontrada");

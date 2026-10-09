@@ -345,12 +345,35 @@ trait HasCompanyConfigurations
     public function getSunatEndpoints(string $serviceType = 'facturacion'): array
     {
         $environment = $this->modo_produccion ? 'produccion' : 'beta';
-        
-        return $this->getConfig('service_endpoints', $environment, $serviceType, [
+        $defaultConfiguration = collect($this->getDefaultConfigurationData())->first(
+            fn (array $configuration) =>
+                ($configuration['config_type'] ?? null) === 'service_endpoints' &&
+                ($configuration['environment'] ?? null) === $environment &&
+                ($configuration['service_type'] ?? null) === $serviceType
+        );
+
+        // New company records may not have configuration rows yet. Fall back to the
+        // repository's established environment endpoints instead of returning an empty URL.
+        $defaultEndpoints = $defaultConfiguration['config_data'] ?? [
             'endpoint' => '',
             'wsdl' => '',
-            'timeout' => 30
-        ]);
+            'timeout' => 30,
+        ];
+
+        // Preserve company-specific invoice endpoints from existing records when no
+        // service_endpoints row is available (for example, after a legacy migration).
+        if ($serviceType === 'facturacion') {
+            $companyEndpoint = $environment === 'produccion'
+                ? $this->endpoint_produccion
+                : $this->endpoint_beta;
+
+            if ($companyEndpoint) {
+                $defaultEndpoints['endpoint'] = $companyEndpoint;
+                $defaultEndpoints['wsdl'] = str_replace('billService', 'billService?wsdl', $companyEndpoint);
+            }
+        }
+
+        return $this->getConfig('service_endpoints', $environment, $serviceType, $defaultEndpoints);
     }
 
     /**
@@ -640,13 +663,13 @@ trait HasCompanyConfigurations
                 'environment' => 'beta',
                 'service_type' => 'guias_remision',
                 'config_data' => [
-                    'client_id' => 'test-85e5b0ae-255c-4891-a595-0b98c65c9854',
-                    'client_secret' => 'test-Hty/M6QshYvPgItX2P0+Kw==',
-                    'ruc_proveedor' => '20161515648',
-                    'usuario_sol' => 'MODDATOS',
-                    'clave_sol' => 'MODDATOS',
+                    'client_id' => null,
+                    'client_secret' => null,
+                    'ruc_proveedor' => null,
+                    'usuario_sol' => null,
+                    'clave_sol' => null,
                 ],
-                'description' => 'Credenciales por defecto para GRE en ambiente beta'
+                'description' => 'Configura credenciales GRE propias para esta empresa en ambiente Beta.'
             ],
 
             // Configuraciones de impuestos
