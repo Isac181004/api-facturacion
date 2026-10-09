@@ -77,7 +77,8 @@ test('puede crear una guía de remisión básica con transporte privado', functi
     expect($guide)->not->toBeNull();
     expect($guide->company_id)->toBe($company->id);
     expect($guide->branch_id)->toBe($branch->id);
-    expect($guide->destinatario_id)->toBe($client->id);
+    expect($guide->client_id)->toBe($client->id);
+    expect($guide->destinatario->id)->toBe($client->id);
     expect($guide->mod_traslado)->toBe('02');
     expect($guide->peso_total)->toEqual(45.5);
     expect($guide->conductor_nombres)->toBe('CARLOS');
@@ -142,8 +143,10 @@ test('puede crear una guía de remisión con transporte público', function () {
 
     $guide = DispatchGuide::first();
     expect($guide->mod_traslado)->toBe('01');
-    expect($guide->transportista_razon_social)->toBe('TRANSPORTES PUBLICOS SAC');
-    expect($guide->transportista_nro_mtc)->toBe('MTC001');
+    expect($guide->transportista)->toMatchArray([
+        'razon_social' => 'TRANSPORTES PUBLICOS SAC',
+        'nro_mtc' => 'MTC001',
+    ]);
 });
 
 test('puede crear guía de remisión para traslado entre establecimientos', function () {
