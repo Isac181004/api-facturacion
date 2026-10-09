@@ -81,7 +81,7 @@ test('puede crear una guía de remisión básica con transporte privado', functi
     expect($guide->destinatario->id)->toBe($client->id);
     expect($guide->mod_traslado)->toBe('02');
     expect($guide->peso_total)->toEqual(45.5);
-    expect($guide->conductor_nombres)->toBe('CARLOS');
+    expect(data_get($guide->vehiculo, 'conductor.nombres'))->toBe('CARLOS');
 });
 
 test('puede crear una guía de remisión con transporte público', function () {
